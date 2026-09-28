@@ -8,6 +8,10 @@ import java.util.Map;
 
 public class SeedDatabase {
     public static void main(String[] args) {
+        System.out.println("=== Connecting to: " + Env.get("DB_URL"));
+        System.out.println("=== As user: " + Env.get("DB_USER"));
+
+
         System.out.println("Checking for existing super_admin...");
         Map<String, Object> result = Database.queryOne("SELECT COUNT(*) as count FROM users WHERE role = 'super_admin'");
 

@@ -1,3 +1,4 @@
+// backend/src/main/java/school/Main.java
 package school;
 
 import com.sun.net.httpserver.HttpServer;
@@ -6,6 +7,7 @@ import school.auth.ChangePasswordHandler;
 import school.auth.ForgotPasswordHandler;
 import school.auth.LoginHandler;
 import school.config.Env;
+import school.handlers.*;
 import school.http.Cors;
 import school.http.Json;
 
@@ -31,11 +33,22 @@ public class Main {
         server.createContext("/api/login", new LoginHandler());
         server.createContext("/api/activate", new ActivateHandler());
         server.createContext("/api/forgot-password", new ForgotPasswordHandler());
-        // /api/reset-password reuses the activation logic per Master Context
         server.createContext("/api/reset-password", new ActivateHandler());
 
         // Authenticated Routes
         server.createContext("/api/change-password", new ChangePasswordHandler());
+
+        // Admin Management (Super Admin only)
+        server.createContext("/api/admins", new AdminManagementHandler());
+
+        // Admin & Super Admin Routes
+        server.createContext("/api/teachers", new TeachersHandler());
+        server.createContext("/api/students", new StudentsHandler());
+        server.createContext("/api/classes", new ClassesHandler());
+        server.createContext("/api/subjects", new SubjectsHandler());
+        server.createContext("/api/assignments", new AssignmentsHandler());
+        server.createContext("/api/sessions", new SessionsHandler());
+        server.createContext("/api/terms", new SessionsHandler());
 
         server.setExecutor(Executors.newFixedThreadPool(20));
         server.start();

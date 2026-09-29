@@ -1,7 +1,7 @@
 # Test Plan — [Feature Name] (Phase [N])
 
-**Author:** [Her Harrietta]
-**Date:** [29 09 2026]
+**Author:**  Harrietta
+**Date:** 29 09 2026
 
 **Feature description:**
 [One paragraph — what this feature does and why]

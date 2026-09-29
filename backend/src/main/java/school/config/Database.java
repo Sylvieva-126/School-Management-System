@@ -17,6 +17,7 @@ public class Database {
         config.setJdbcUrl(Env.get("DB_URL"));
         config.setUsername(Env.get("DB_USER"));
         config.setPassword(Env.get("DB_PASS"));
+        config.setDriverClassName("org.postgresql.Driver"); // ← THE FIX (was missing)
         config.setMaximumPoolSize(10);
         ds = new HikariDataSource(config);
     }

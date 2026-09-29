@@ -9,7 +9,7 @@ Wrong passwords are rejected AND recorded. Too many failures lock
 the door for 15 minutes. Changing password kills all other
 sessions and sends a confirmation email.
 
-## Test Cases (results are real — tested by the developer)
+## Test Cases 
 
 | ID | Test Case | Steps | Expected | Actual | Result |
 |----|-----------|-------|----------|--------|--------|

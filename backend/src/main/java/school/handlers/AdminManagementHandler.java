@@ -1,3 +1,4 @@
+// backend/src/main/java/school/handlers/AdminManagementHandler.java
 package school.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -48,10 +49,10 @@ public class AdminManagementHandler extends SecureHandler {
                     throw new ApiError(400, "You cannot remove your own account.");
                 }
 
-                // G3: Super admin accounts cannot be removed this way
+                // G3: Super admin accounts cannot be removed via this route
                 if ("super_admin".equals(targetUser.get("role"))) {
                     AuditLogger.blocked(user, action.toUpperCase() + "_ADMIN", "users", targetId, null, null);
-                    throw new ApiError(400, "Super Admin accounts cannot be removed this way.");
+                    throw new ApiError(400, "Super admin accounts cannot be removed via this route.");
                 }
 
                 // G2: Check if last admin before demote/delete

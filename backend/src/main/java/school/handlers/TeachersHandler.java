@@ -41,6 +41,8 @@ public class TeachersHandler extends SecureHandler {
                 throw new ApiError(400, "Full name is required");
             }
 
+            fullName = validateAndFormatName(fullName);
+
             String token = generateToken();
 
             Map<String, Object> res = Database.queryOne(
@@ -62,6 +64,20 @@ public class TeachersHandler extends SecureHandler {
             return;
         }
         throw new ApiError(405, "Method not allowed");
+    }
+
+    private String validateAndFormatName(String name) {
+        name = name.trim().replaceAll("\\s+", " ");
+        if (name.length() < 2 || name.length() > 100) {
+            throw new ApiError(400, "Please enter a valid full name.");
+        }
+        if (!name.matches(".*\\p{L}.*")) {
+            throw new ApiError(400, "Please enter a valid full name.");
+        }
+        if (!name.matches("^[\\p{L} \\-'.]+$")) {
+            throw new ApiError(400, "Please enter a valid full name.");
+        }
+        return name;
     }
 
     private String generateToken() {

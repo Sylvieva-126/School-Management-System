@@ -14,13 +14,31 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Year;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class StudentsHandler extends SecureHandler {
     private static final SecureRandom random = new SecureRandom();
+
+    private static int asInt(Object value) {
+        if (value == null) throw new ApiError(400, "Missing required number field");
+        if (value instanceof Number) return ((Number) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt(((String) value).trim());
+            } catch (NumberFormatException e) {
+                throw new ApiError(400, "Expected a number");
+            }
+        }
+        throw new ApiError(400, "Expected a number");
+    }
+
+    private void verifyExists(String table, int id, String entityName) {
+        Map<String, Object> row = Database.queryOne("SELECT 1 FROM " + table + " WHERE id = ?", id);
+        if (row == null) {
+            throw new ApiError(400, entityName + " with id " + id + " does not exist");
+        }
+    }
 
     @Override
     protected void handleSecure(HttpExchange ex, User user) throws Exception {
@@ -42,6 +60,7 @@ public class StudentsHandler extends SecureHandler {
                     }
                 }
             }
+
             int offset = (page - 1) * limit;
             String searchPattern = "%" + q + "%";
 
@@ -57,7 +76,7 @@ public class StudentsHandler extends SecureHandler {
                     searchPattern, searchPattern
             ).get("c")).longValue();
 
-            Map<String, Object> response = new LinkedHashMap<>();
+            Map<String, Object> response = new java.util.LinkedHashMap<>();
             response.put("items", items);
             response.put("total", total);
             response.put("page", page);
@@ -70,16 +89,21 @@ public class StudentsHandler extends SecureHandler {
             Map<String, Object> body = Json.parseBody(ex);
             String fullName = (String) body.get("fullName");
             String admissionNo = (String) body.get("admissionNo");
-            Integer classId = body.get("classId") != null ? ((Number) body.get("classId")).intValue() : null;
             String parentPhone = (String) body.get("parentPhone");
             String parentName = (String) body.get("parentName");
 
-            if (fullName == null || classId == null || parentPhone == null || parentName == null) {
+            if (fullName == null || parentPhone == null || parentName == null) {
                 throw new ApiError(400, "Full name, class, parent phone, and parent name are required");
             }
 
+            int classId = asInt(body.get("classId"));
+            verifyExists("classes", classId, "Class");
+
             final String validatedFullName = validateAndFormatName(fullName);
             final String validatedParentName = validateAndFormatName(parentName);
+            final int finalClassId = classId;
+            final String finalParentPhone = parentPhone;
+            final String providedAdmissionNo = admissionNo;
 
             Map<String, Object> activeSession = Database.queryOne("SELECT id FROM academic_sessions WHERE active = TRUE");
             if (activeSession == null) {
@@ -87,62 +111,69 @@ public class StudentsHandler extends SecureHandler {
             }
             final int sessionId = ((Number) activeSession.get("id")).intValue();
 
-            final int finalClassId = classId;
-            final String finalParentPhone = parentPhone;
+            try {
+                Database.transaction(con -> {
+                    String finalAdmNo = providedAdmissionNo;
+                    if (finalAdmNo == null || finalAdmNo.trim().isEmpty()) {
+                        int year = Year.now().getValue();
+                        long count = ((Number) Database.queryOne(con, "SELECT COUNT(*) as c FROM students").get("c")).longValue();
+                        finalAdmNo = String.format("%d-%04d", year, count + 1);
+                    }
 
-            Database.transaction(con -> {
-                String finalAdmNo = admissionNo;
-                if (finalAdmNo == null || finalAdmNo.trim().isEmpty()) {
-                    int year = Year.now().getValue();
-                    long count = ((Number) Database.queryOne(con, "SELECT COUNT(*) as c FROM students").get("c")).longValue();
-                    finalAdmNo = String.format("%d-%04d", year, count + 1);
-                }
-
-                // 1. Insert student user
-                int studentUserId = ((Number) Database.queryOne(con,
-                        "INSERT INTO users (full_name, role, active) VALUES (?, 'student', TRUE) RETURNING id",
-                        validatedFullName
-                ).get("id")).intValue();
-
-                // 2. Insert student row
-                int studentId = ((Number) Database.queryOne(con,
-                        "INSERT INTO students (user_id, admission_no, full_name, class_id, current_session_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
-                        studentUserId, finalAdmNo, validatedFullName, finalClassId, sessionId
-                ).get("id")).intValue();
-
-                // 3. Find or create parent
-                Map<String, Object> parent = Database.queryOne(con, "SELECT id FROM users WHERE phone = ? AND role = 'parent'", finalParentPhone);
-                int parentId;
-                if (parent != null) {
-                    parentId = ((Number) parent.get("id")).intValue();
-                } else {
-                    parentId = ((Number) Database.queryOne(con,
-                            "INSERT INTO users (full_name, phone, role, active) VALUES (?, ?, 'parent', TRUE) RETURNING id",
-                            validatedParentName, finalParentPhone
+                    // 1. Insert student user
+                    int studentUserId = ((Number) Database.queryOne(con,
+                            "INSERT INTO users (full_name, role, active) VALUES (?, 'student', TRUE) RETURNING id",
+                            validatedFullName
                     ).get("id")).intValue();
 
-                    String token = generateToken();
-                    Database.update(con, "INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", token, parentId);
-                    String link = Env.get("APP_URL") + "/activate?token=" + token;
-                    Notifier.notify(parentId, "ACCOUNT_CREATED", Map.of("link", link, "name", validatedParentName));
-                }
+                    // 2. Insert student row
+                    int studentId = ((Number) Database.queryOne(con,
+                            "INSERT INTO students (user_id, admission_no, full_name, class_id, current_session_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
+                            studentUserId, finalAdmNo, validatedFullName, finalClassId, sessionId
+                    ).get("id")).intValue();
 
-                // 4. Link parent and student
-                Database.update(con, "INSERT INTO parent_links (parent_user_id, student_id) VALUES (?, ?) ON CONFLICT DO NOTHING", parentId, studentId);
+                    // 3. Find or create parent
+                    Map<String, Object> parent = Database.queryOne(con, "SELECT id FROM users WHERE phone = ? AND role = 'parent'", finalParentPhone);
+                    int parentId;
+                    if (parent != null) {
+                        parentId = ((Number) parent.get("id")).intValue();
+                    } else {
+                        parentId = ((Number) Database.queryOne(con,
+                                "INSERT INTO users (full_name, phone, role, active) VALUES (?, ?, 'parent', TRUE) RETURNING id",
+                                validatedParentName, finalParentPhone
+                        ).get("id")).intValue();
 
-                // 5. Auto-invoice if active term fee structure exists
-                Map<String, Object> activeTerm = Database.queryOne(con, "SELECT id FROM terms WHERE active = TRUE");
-                if (activeTerm != null) {
-                    int termId = ((Number) activeTerm.get("id")).intValue();
-                    Map<String, Object> fee = Database.queryOne(con, "SELECT amount FROM fee_structures WHERE class_id = ? AND term_id = ?", finalClassId, termId);
-                    if (fee != null) {
-                        Database.update(con, "INSERT INTO invoices (student_id, term_id, amount, balance) VALUES (?, ?, ?, ?)",
-                                studentId, termId, fee.get("amount"), fee.get("amount"));
+                        String token = generateToken();
+                        Database.update(con, "INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", token, parentId);
+                        String link = Env.get("APP_URL") + "/activate?token=" + token;
+                        Notifier.notify(parentId, "ACCOUNT_CREATED", Map.of("link", link, "name", validatedParentName));
+                    }
+
+                    // 4. Link parent and student
+                    Database.update(con, "INSERT INTO parent_links (parent_user_id, student_id) VALUES (?, ?) ON CONFLICT DO NOTHING", parentId, studentId);
+
+                    // 5. Auto-invoice if active term fee structure exists
+                    Map<String, Object> activeTerm = Database.queryOne(con, "SELECT id FROM terms WHERE active = TRUE");
+                    if (activeTerm != null) {
+                        int termId = ((Number) activeTerm.get("id")).intValue();
+                        Map<String, Object> fee = Database.queryOne(con, "SELECT amount FROM fee_structures WHERE class_id = ? AND term_id = ?", finalClassId, termId);
+                        if (fee != null) {
+                            Database.update(con, "INSERT INTO invoices (student_id, term_id, amount, balance) VALUES (?, ?, ?, ?)",
+                                    studentId, termId, fee.get("amount"), fee.get("amount"));
+                        }
+                    }
+
+                    AuditLogger.success(user, "STUDENT_ADMITTED", "students", studentId, null, Map.of("admission_no", finalAdmNo, "name", validatedFullName));
+                });
+            } catch (RuntimeException e) {
+                if (e.getCause() instanceof java.sql.SQLException) {
+                    String state = ((java.sql.SQLException) e.getCause()).getSQLState();
+                    if (state != null && state.startsWith("23503")) {
+                        throw new ApiError(400, "One of the referenced records does not exist");
                     }
                 }
-
-                AuditLogger.success(user, "STUDENT_ADMITTED", "students", studentId, null, Map.of("admission_no", finalAdmNo, "name", validatedFullName));
-            });
+                throw e;
+            }
 
             Json.send(ex, 201, Map.of("message", "Student admitted successfully"));
             return;

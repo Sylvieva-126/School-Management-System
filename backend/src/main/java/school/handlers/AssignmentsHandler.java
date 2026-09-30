@@ -1,3 +1,4 @@
+// backend/src/main/java/school/handlers/AssignmentsHandler.java
 package school.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -11,6 +12,27 @@ import java.util.List;
 import java.util.Map;
 
 public class AssignmentsHandler extends SecureHandler {
+
+    private static int asInt(Object value) {
+        if (value == null) throw new ApiError(400, "Missing required number field");
+        if (value instanceof Number) return ((Number) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt(((String) value).trim());
+            } catch (NumberFormatException e) {
+                throw new ApiError(400, "Expected a number");
+            }
+        }
+        throw new ApiError(400, "Expected a number");
+    }
+
+    private void verifyExists(String table, int id, String entityName) {
+        Map<String, Object> row = Database.queryOne("SELECT 1 FROM " + table + " WHERE id = ?", id);
+        if (row == null) {
+            throw new ApiError(400, entityName + " with id " + id + " does not exist");
+        }
+    }
+
     @Override
     protected void handleSecure(HttpExchange ex, User user) throws Exception {
         requireRole(user, "super_admin", "admin");
@@ -31,19 +53,26 @@ public class AssignmentsHandler extends SecureHandler {
 
         if ("POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
-            Integer teacherId = body.get("teacherId") != null ? ((Number) body.get("teacherId")).intValue() : null;
-            Integer classId = body.get("classId") != null ? ((Number) body.get("classId")).intValue() : null;
-            Integer subjectId = body.get("subjectId") != null ? ((Number) body.get("subjectId")).intValue() : null;
 
-            if (teacherId == null || classId == null || subjectId == null) {
-                throw new ApiError(400, "Teacher, class, and subject are required");
-            }
+            int teacherId = asInt(body.get("teacherId"));
+            int classId = asInt(body.get("classId"));
+            int subjectId = asInt(body.get("subjectId"));
+
+            verifyExists("users", teacherId, "Teacher");
+            verifyExists("classes", classId, "Class");
+            verifyExists("subjects", subjectId, "Subject");
 
             try {
                 Database.update("INSERT INTO teacher_assignments (teacher_id, class_id, subject_id) VALUES (?, ?, ?)", teacherId, classId, subjectId);
                 Json.send(ex, 201, Map.of("message", "Assignment created successfully"));
-            } catch (Exception e) {
-                if (e.getMessage().contains("duplicate key value")) {
+            } catch (RuntimeException e) {
+                if (e.getCause() instanceof java.sql.SQLException) {
+                    String state = ((java.sql.SQLException) e.getCause()).getSQLState();
+                    if (state != null && state.startsWith("23503")) {
+                        throw new ApiError(400, "One of the referenced records does not exist");
+                    }
+                }
+                if (e.getMessage() != null && e.getMessage().contains("duplicate key value")) {
                     throw new ApiError(400, "This assignment already exists.");
                 }
                 throw e;

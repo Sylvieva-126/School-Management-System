@@ -50,6 +50,13 @@ public class Main {
         server.createContext("/api/sessions", new SessionsHandler());
         server.createContext("/api/terms", new SessionsHandler());
 
+        // Phase 4B Routes
+        server.createContext("/api/fees", new FeesHandler());
+        server.createContext("/api/timetable", new TimetableHandler());
+        server.createContext("/api/exams", new ExamsHandler());
+        server.createContext("/api/grading-scale", new GradingScaleHandler());
+        server.createContext("/api/dashboard", new DashboardHandler());
+
         server.setExecutor(Executors.newFixedThreadPool(20));
         server.start();
         System.out.println("School Management System Backend started on port " + port);

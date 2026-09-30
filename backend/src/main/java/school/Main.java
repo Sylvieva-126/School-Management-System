@@ -57,6 +57,12 @@ public class Main {
         server.createContext("/api/grading-scale", new GradingScaleHandler());
         server.createContext("/api/dashboard", new DashboardHandler());
 
+        // Phase 5 Routes
+        server.createContext("/api/attendance", new AttendanceHandler());
+        server.createContext("/api/scores", new ScoreHandler());
+        server.createContext("/api/teacher", new TeacherPortalHandler());
+        server.createContext("/api/teacher-attendance", new TeacherAttendanceHandler());
+
         server.setExecutor(Executors.newFixedThreadPool(20));
         server.start();
         System.out.println("School Management System Backend started on port " + port);

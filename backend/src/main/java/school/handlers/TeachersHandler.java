@@ -33,23 +33,54 @@ public class TeachersHandler extends SecureHandler {
 
         if ("POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
-            String fullName = (String) body.get("fullName");
-            String email = (String) body.get("email");
-            String phone = (String) body.get("phone");
 
-            if (fullName == null || fullName.trim().isEmpty()) {
+            String fullName = body.get("fullName") != null ? ((String) body.get("fullName")).trim() : null;
+            String email = body.get("email") != null ? ((String) body.get("email")).trim() : null;
+            String phone = body.get("phone") != null ? ((String) body.get("phone")).trim() : null;
+
+            if (fullName == null || fullName.isEmpty()) {
                 throw new ApiError(400, "Full name is required");
+            }
+            if (phone == null || phone.isEmpty()) {
+                throw new ApiError(400, "Phone number is required");
             }
 
             fullName = validateAndFormatName(fullName);
 
-            String token = generateToken();
+            if (!phone.matches("^\\+?[0-9]{7,15}$")) {
+                throw new ApiError(400, "Please enter a valid phone number");
+            }
 
-            Map<String, Object> res = Database.queryOne(
-                    "INSERT INTO users (full_name, email, phone, role, active) VALUES (?, ?, ?, 'teacher', TRUE) RETURNING id",
-                    fullName, email, phone
-            );
-            int teacherId = ((Number) res.get("id")).intValue();
+            if (Database.queryOne("SELECT id FROM users WHERE phone = ?", phone) != null) {
+                throw new ApiError(400, "This phone number is already registered");
+            }
+
+            if (email != null && !email.isEmpty()) {
+                if (Database.queryOne("SELECT id FROM users WHERE email = ?", email) != null) {
+                    throw new ApiError(400, "This email is already registered");
+                }
+            } else {
+                email = null; // Ensure empty string is stored as NULL
+            }
+
+            String token = generateToken();
+            int teacherId;
+
+            try {
+                Map<String, Object> res = Database.queryOne(
+                        "INSERT INTO users (full_name, email, phone, role, active) VALUES (?, ?, ?, 'teacher', TRUE) RETURNING id",
+                        fullName, email, phone
+                );
+                teacherId = ((Number) res.get("id")).intValue();
+            } catch (RuntimeException e) {
+                if (e.getCause() instanceof java.sql.SQLException) {
+                    String state = ((java.sql.SQLException) e.getCause()).getSQLState();
+                    if (state != null && state.startsWith("23505")) {
+                        throw new ApiError(400, "This phone number or email is already registered");
+                    }
+                }
+                throw e;
+            }
 
             Database.update("INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", token, teacherId);
 

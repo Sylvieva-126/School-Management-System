@@ -76,34 +76,38 @@ public class StudentsHandler extends SecureHandler {
                     searchPattern, searchPattern
             ).get("c")).longValue();
 
-            Map<String, Object> response = new java.util.LinkedHashMap<>();
-            response.put("items", items);
-            response.put("total", total);
-            response.put("page", page);
-            response.put("pages", (int) Math.ceil((double) total / limit));
-            Json.send(ex, 200, response);
+            Json.send(ex, 200, Map.of(
+                    "items", items,
+                    "total", total,
+                    "page", page,
+                    "pages", (int) Math.ceil((double) total / limit)
+            ));
             return;
         }
 
         if ("POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
-            String fullName = (String) body.get("fullName");
-            String admissionNo = (String) body.get("admissionNo");
-            String parentPhone = (String) body.get("parentPhone");
-            String parentName = (String) body.get("parentName");
 
-            if (fullName == null || parentPhone == null || parentName == null) {
+            String fullName = body.get("fullName") != null ? ((String) body.get("fullName")).trim() : null;
+            String admissionNo = body.get("admissionNo") != null ? ((String) body.get("admissionNo")).trim() : null;
+            String parentPhone = body.get("parentPhone") != null ? ((String) body.get("parentPhone")).trim() : null;
+            String parentName = body.get("parentName") != null ? ((String) body.get("parentName")).trim() : null;
+
+            if (fullName == null || fullName.isEmpty() || parentPhone == null || parentPhone.isEmpty() || parentName == null || parentName.isEmpty()) {
                 throw new ApiError(400, "Full name, class, parent phone, and parent name are required");
             }
 
             int classId = asInt(body.get("classId"));
             verifyExists("classes", classId, "Class");
 
+            // ✅ FINAL COPIES — transformed once, never reassigned, lambda-safe
             final String validatedFullName = validateAndFormatName(fullName);
             final String validatedParentName = validateAndFormatName(parentName);
-            final int finalClassId = classId;
-            final String finalParentPhone = parentPhone;
-            final String providedAdmissionNo = admissionNo;
+
+            if (!parentPhone.matches("^\\+?[0-9]{7,15}$")) {
+                throw new ApiError(400, "Please enter a valid phone number");
+            }
+            final String validatedParentPhone = parentPhone;
 
             Map<String, Object> activeSession = Database.queryOne("SELECT id FROM academic_sessions WHERE active = TRUE");
             if (activeSession == null) {
@@ -113,11 +117,15 @@ public class StudentsHandler extends SecureHandler {
 
             try {
                 Database.transaction(con -> {
-                    String finalAdmNo = providedAdmissionNo;
-                    if (finalAdmNo == null || finalAdmNo.trim().isEmpty()) {
+                    String finalAdmNo = admissionNo;
+                    if (finalAdmNo == null || finalAdmNo.isEmpty()) {
                         int year = Year.now().getValue();
                         long count = ((Number) Database.queryOne(con, "SELECT COUNT(*) as c FROM students").get("c")).longValue();
                         finalAdmNo = String.format("%d-%04d", year, count + 1);
+                    } else {
+                        if (Database.queryOne(con, "SELECT id FROM students WHERE admission_no = ?", finalAdmNo) != null) {
+                            throw new ApiError(400, "This admission number is already in use");
+                        }
                     }
 
                     // 1. Insert student user
@@ -129,19 +137,33 @@ public class StudentsHandler extends SecureHandler {
                     // 2. Insert student row
                     int studentId = ((Number) Database.queryOne(con,
                             "INSERT INTO students (user_id, admission_no, full_name, class_id, current_session_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
-                            studentUserId, finalAdmNo, validatedFullName, finalClassId, sessionId
+                            studentUserId, finalAdmNo, validatedFullName, classId, sessionId
                     ).get("id")).intValue();
 
                     // 3. Find or create parent
-                    Map<String, Object> parent = Database.queryOne(con, "SELECT id FROM users WHERE phone = ? AND role = 'parent'", finalParentPhone);
+                    Map<String, Object> existingUser = Database.queryOne(con, "SELECT id, role FROM users WHERE phone = ?", validatedParentPhone);
                     int parentId;
-                    if (parent != null) {
-                        parentId = ((Number) parent.get("id")).intValue();
+
+                    if (existingUser != null) {
+                        if (!"parent".equals(existingUser.get("role"))) {
+                            throw new ApiError(400, "This phone number is already registered to a non-parent account");
+                        }
+                        parentId = ((Number) existingUser.get("id")).intValue();
                     } else {
-                        parentId = ((Number) Database.queryOne(con,
-                                "INSERT INTO users (full_name, phone, role, active) VALUES (?, ?, 'parent', TRUE) RETURNING id",
-                                validatedParentName, finalParentPhone
-                        ).get("id")).intValue();
+                        try {
+                            parentId = ((Number) Database.queryOne(con,
+                                    "INSERT INTO users (full_name, phone, role, active) VALUES (?, ?, 'parent', TRUE) RETURNING id",
+                                    validatedParentName, validatedParentPhone
+                            ).get("id")).intValue();
+                        } catch (RuntimeException e) {
+                            if (e.getCause() instanceof java.sql.SQLException) {
+                                String state = ((java.sql.SQLException) e.getCause()).getSQLState();
+                                if (state != null && state.startsWith("23505")) {
+                                    throw new ApiError(400, "This phone number is already registered");
+                                }
+                            }
+                            throw e;
+                        }
 
                         String token = generateToken();
                         Database.update(con, "INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", token, parentId);
@@ -156,7 +178,7 @@ public class StudentsHandler extends SecureHandler {
                     Map<String, Object> activeTerm = Database.queryOne(con, "SELECT id FROM terms WHERE active = TRUE");
                     if (activeTerm != null) {
                         int termId = ((Number) activeTerm.get("id")).intValue();
-                        Map<String, Object> fee = Database.queryOne(con, "SELECT amount FROM fee_structures WHERE class_id = ? AND term_id = ?", finalClassId, termId);
+                        Map<String, Object> fee = Database.queryOne(con, "SELECT amount FROM fee_structures WHERE class_id = ? AND term_id = ?", classId, termId);
                         if (fee != null) {
                             Database.update(con, "INSERT INTO invoices (student_id, term_id, amount, balance) VALUES (?, ?, ?, ?)",
                                     studentId, termId, fee.get("amount"), fee.get("amount"));
@@ -166,10 +188,17 @@ public class StudentsHandler extends SecureHandler {
                     AuditLogger.success(user, "STUDENT_ADMITTED", "students", studentId, null, Map.of("admission_no", finalAdmNo, "name", validatedFullName));
                 });
             } catch (RuntimeException e) {
+                // Unwrap ApiError if it was thrown inside the transaction lambda
+                if (e.getCause() instanceof ApiError) {
+                    throw (ApiError) e.getCause();
+                }
                 if (e.getCause() instanceof java.sql.SQLException) {
                     String state = ((java.sql.SQLException) e.getCause()).getSQLState();
                     if (state != null && state.startsWith("23503")) {
                         throw new ApiError(400, "One of the referenced records does not exist");
+                    }
+                    if (state != null && state.startsWith("23505")) {
+                        throw new ApiError(400, "A unique constraint was violated (e.g., duplicate admission number)");
                     }
                 }
                 throw e;

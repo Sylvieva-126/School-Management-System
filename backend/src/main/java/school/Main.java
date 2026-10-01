@@ -62,9 +62,11 @@ public class Main {
         server.createContext("/api/scores", new ScoreHandler());
         server.createContext("/api/teacher", new TeacherPortalHandler());
         server.createContext("/api/teacher-attendance", new TeacherAttendanceHandler());
-
-        // Bug 2 Fix: Register StudentPortalHandler
         server.createContext("/api/student", new StudentPortalHandler());
+
+        // Phase 6 Routes
+        server.createContext("/api/results", new ResultHandler());
+        server.createContext("/api/promotion", new PromotionHandler());
 
         server.setExecutor(Executors.newFixedThreadPool(20));
         server.start();

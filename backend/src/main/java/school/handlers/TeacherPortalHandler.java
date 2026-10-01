@@ -16,8 +16,10 @@ public class TeacherPortalHandler extends SecureHandler {
     @Override
     protected void handleSecure(HttpExchange ex, User user) throws Exception {
         requireRole(user, "teacher");
-        String path = ex.getRequestURI().getPath();
         requireMethod(ex, "GET");
+
+        String path = ex.getRequestURI().getPath();
+        System.out.println("TeacherPortalHandler received: " + path);
 
         if ("/api/teacher/my-classes".equals(path)) {
             List<Map<String, Object>> classes = Database.query(

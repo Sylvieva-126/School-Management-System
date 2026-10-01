@@ -88,6 +88,8 @@ public class ExamsHandler extends SecureHandler {
                 );
                 AuditLogger.success(user, "EXAM_CREATED", "exams", (int) id, null, Map.of("name", name));
             } catch (RuntimeException e) {
+                if (e instanceof ApiError) throw (ApiError) e;
+                if (e.getCause() instanceof ApiError) throw (ApiError) e.getCause();
                 if (e.getCause() instanceof java.sql.SQLException) {
                     String state = ((java.sql.SQLException) e.getCause()).getSQLState();
                     if (state != null && state.startsWith("23503")) {

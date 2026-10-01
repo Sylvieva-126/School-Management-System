@@ -1,7 +1,9 @@
+// backend/src/main/java/school/config/Database.java
 package school.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import school.http.ApiError;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -14,10 +16,10 @@ public class Database {
 
     static {
         HikariConfig config = new HikariConfig();
+        config.setDriverClassName("org.postgresql.Driver"); // DEVIATION NOTICE: Preserved
         config.setJdbcUrl(Env.get("DB_URL"));
         config.setUsername(Env.get("DB_USER"));
         config.setPassword(Env.get("DB_PASS"));
-        config.setDriverClassName("org.postgresql.Driver"); // ← THE FIX (was missing)
         config.setMaximumPoolSize(10);
         ds = new HikariDataSource(config);
     }
@@ -121,6 +123,12 @@ public class Database {
                 con.commit();
             } catch (Exception e) {
                 con.rollback();
+                if (e instanceof ApiError) {
+                    throw (ApiError) e;
+                }
+                if (e.getCause() instanceof ApiError) {
+                    throw (ApiError) e.getCause();
+                }
                 throw new RuntimeException(e);
             } finally {
                 con.setAutoCommit(true);

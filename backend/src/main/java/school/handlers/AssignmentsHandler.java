@@ -66,6 +66,8 @@ public class AssignmentsHandler extends SecureHandler {
                 Database.update("INSERT INTO teacher_assignments (teacher_id, class_id, subject_id) VALUES (?, ?, ?)", teacherId, classId, subjectId);
                 Json.send(ex, 201, Map.of("message", "Assignment created successfully"));
             } catch (RuntimeException e) {
+                if (e instanceof ApiError) throw (ApiError) e;
+                if (e.getCause() instanceof ApiError) throw (ApiError) e.getCause();
                 if (e.getCause() instanceof java.sql.SQLException) {
                     String state = ((java.sql.SQLException) e.getCause()).getSQLState();
                     if (state != null && state.startsWith("23503")) {

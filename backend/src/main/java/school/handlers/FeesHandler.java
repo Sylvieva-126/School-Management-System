@@ -81,6 +81,8 @@ public class FeesHandler extends SecureHandler {
                 try {
                     Database.update("INSERT INTO fee_structures (class_id, term_id, amount) VALUES (?, ?, ?)", classId, termId, amount);
                 } catch (RuntimeException e) {
+                    if (e instanceof ApiError) throw (ApiError) e;
+                    if (e.getCause() instanceof ApiError) throw (ApiError) e.getCause();
                     if (e.getCause() instanceof java.sql.SQLException) {
                         String state = ((java.sql.SQLException) e.getCause()).getSQLState();
                         if (state != null && state.startsWith("23503")) {
@@ -103,7 +105,7 @@ public class FeesHandler extends SecureHandler {
             if (amountNum <= 0) {
                 throw new ApiError(400, "Valid invoice ID and amount > 0 are required");
             }
-            BigDecimal amount = new BigDecimal(String.valueOf(amountNum));
+            final BigDecimal amount = new BigDecimal(String.valueOf(amountNum));
 
             Map<String, Object> invoice = Database.queryOne(
                     "SELECT i.balance, i.student_id, t.closed FROM invoices i JOIN terms t ON i.term_id = t.id WHERE i.id = ?", invoiceId
@@ -124,6 +126,8 @@ public class FeesHandler extends SecureHandler {
                     Database.update(con, "UPDATE invoices SET balance = balance - ? WHERE id = ?", amount, invoiceId);
                 });
             } catch (RuntimeException e) {
+                if (e instanceof ApiError) throw (ApiError) e;
+                if (e.getCause() instanceof ApiError) throw (ApiError) e.getCause();
                 if (e.getCause() instanceof java.sql.SQLException) {
                     String state = ((java.sql.SQLException) e.getCause()).getSQLState();
                     if (state != null && state.startsWith("23503")) {
@@ -166,6 +170,8 @@ public class FeesHandler extends SecureHandler {
                         termId, fee.get("amount"), fee.get("amount"), classId, termId
                 );
             } catch (RuntimeException e) {
+                if (e instanceof ApiError) throw (ApiError) e;
+                if (e.getCause() instanceof ApiError) throw (ApiError) e.getCause();
                 if (e.getCause() instanceof java.sql.SQLException) {
                     String state = ((java.sql.SQLException) e.getCause()).getSQLState();
                     if (state != null && state.startsWith("23503")) {

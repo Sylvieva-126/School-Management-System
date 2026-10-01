@@ -1,3 +1,4 @@
+// backend/src/main/java/school/handlers/StudentsHandler.java
 package school.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -88,32 +89,36 @@ public class StudentsHandler extends SecureHandler {
         if ("POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
 
-            String fullName = body.get("fullName") != null ? ((String) body.get("fullName")).trim() : null;
-            String admissionNo = body.get("admissionNo") != null ? ((String) body.get("admissionNo")).trim() : null;
-            String parentPhone = body.get("parentPhone") != null ? ((String) body.get("parentPhone")).trim() : null;
-            String parentName = body.get("parentName") != null ? ((String) body.get("parentName")).trim() : null;
+            String rawFullName = body.get("fullName") != null ? ((String) body.get("fullName")).trim() : null;
+            String rawAdmissionNo = body.get("admissionNo") != null ? ((String) body.get("admissionNo")).trim() : null;
+            String rawParentPhone = body.get("parentPhone") != null ? ((String) body.get("parentPhone")).trim() : null;
+            String rawParentName = body.get("parentName") != null ? ((String) body.get("parentName")).trim() : null;
 
-            if (fullName == null || fullName.isEmpty() || parentPhone == null || parentPhone.isEmpty() || parentName == null || parentName.isEmpty()) {
+            if (rawFullName == null || rawFullName.isEmpty() || rawParentPhone == null || rawParentPhone.isEmpty() || rawParentName == null || rawParentName.isEmpty()) {
                 throw new ApiError(400, "Full name, class, parent phone, and parent name are required");
             }
 
             int classId = asInt(body.get("classId"));
             verifyExists("classes", classId, "Class");
 
-            // ✅ FINAL COPIES — transformed once, never reassigned, lambda-safe
-            final String validatedFullName = validateAndFormatName(fullName);
-            final String validatedParentName = validateAndFormatName(parentName);
+            final String fullName = validateAndFormatName(rawFullName);
+            final String parentName = validateAndFormatName(rawParentName);
+            final String parentPhone = rawParentPhone;
+            final String admissionNo = rawAdmissionNo;
 
             if (!parentPhone.matches("^\\+?[0-9]{7,15}$")) {
                 throw new ApiError(400, "Please enter a valid phone number");
             }
-            final String validatedParentPhone = parentPhone;
 
             Map<String, Object> activeSession = Database.queryOne("SELECT id FROM academic_sessions WHERE active = TRUE");
             if (activeSession == null) {
                 throw new ApiError(400, "No active academic session found. Please activate a session first.");
             }
             final int sessionId = ((Number) activeSession.get("id")).intValue();
+
+            final int[] newParentId = {-1};
+            final String[] newParentToken = {null};
+            final String[] finalAdmNoOut = {null};
 
             try {
                 Database.transaction(con -> {
@@ -127,21 +132,19 @@ public class StudentsHandler extends SecureHandler {
                             throw new ApiError(400, "This admission number is already in use");
                         }
                     }
+                    finalAdmNoOut[0] = finalAdmNo;
 
-                    // 1. Insert student user
                     int studentUserId = ((Number) Database.queryOne(con,
                             "INSERT INTO users (full_name, role, active) VALUES (?, 'student', TRUE) RETURNING id",
-                            validatedFullName
+                            fullName
                     ).get("id")).intValue();
 
-                    // 2. Insert student row
                     int studentId = ((Number) Database.queryOne(con,
                             "INSERT INTO students (user_id, admission_no, full_name, class_id, current_session_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
-                            studentUserId, finalAdmNo, validatedFullName, classId, sessionId
+                            studentUserId, finalAdmNo, fullName, classId, sessionId
                     ).get("id")).intValue();
 
-                    // 3. Find or create parent
-                    Map<String, Object> existingUser = Database.queryOne(con, "SELECT id, role FROM users WHERE phone = ?", validatedParentPhone);
+                    Map<String, Object> existingUser = Database.queryOne(con, "SELECT id, role FROM users WHERE phone = ?", parentPhone);
                     int parentId;
 
                     if (existingUser != null) {
@@ -153,9 +156,11 @@ public class StudentsHandler extends SecureHandler {
                         try {
                             parentId = ((Number) Database.queryOne(con,
                                     "INSERT INTO users (full_name, phone, role, active) VALUES (?, ?, 'parent', TRUE) RETURNING id",
-                                    validatedParentName, validatedParentPhone
+                                    parentName, parentPhone
                             ).get("id")).intValue();
                         } catch (RuntimeException e) {
+                            if (e instanceof ApiError) throw (ApiError) e;
+                            if (e.getCause() instanceof ApiError) throw (ApiError) e.getCause();
                             if (e.getCause() instanceof java.sql.SQLException) {
                                 String state = ((java.sql.SQLException) e.getCause()).getSQLState();
                                 if (state != null && state.startsWith("23505")) {
@@ -167,14 +172,13 @@ public class StudentsHandler extends SecureHandler {
 
                         String token = generateToken();
                         Database.update(con, "INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", token, parentId);
-                        String link = Env.get("APP_URL") + "/activate?token=" + token;
-                        Notifier.notify(parentId, "ACCOUNT_CREATED", Map.of("link", link, "name", validatedParentName));
+
+                        newParentId[0] = parentId;
+                        newParentToken[0] = token;
                     }
 
-                    // 4. Link parent and student
                     Database.update(con, "INSERT INTO parent_links (parent_user_id, student_id) VALUES (?, ?) ON CONFLICT DO NOTHING", parentId, studentId);
 
-                    // 5. Auto-invoice if active term fee structure exists
                     Map<String, Object> activeTerm = Database.queryOne(con, "SELECT id FROM terms WHERE active = TRUE");
                     if (activeTerm != null) {
                         int termId = ((Number) activeTerm.get("id")).intValue();
@@ -185,13 +189,11 @@ public class StudentsHandler extends SecureHandler {
                         }
                     }
 
-                    AuditLogger.success(user, "STUDENT_ADMITTED", "students", studentId, null, Map.of("admission_no", finalAdmNo, "name", validatedFullName));
+                    AuditLogger.success(user, "STUDENT_ADMITTED", "students", studentId, null, Map.of("admission_no", finalAdmNo, "name", fullName));
                 });
             } catch (RuntimeException e) {
-                // Unwrap ApiError if it was thrown inside the transaction lambda
-                if (e.getCause() instanceof ApiError) {
-                    throw (ApiError) e.getCause();
-                }
+                if (e instanceof ApiError) throw (ApiError) e;
+                if (e.getCause() instanceof ApiError) throw (ApiError) e.getCause();
                 if (e.getCause() instanceof java.sql.SQLException) {
                     String state = ((java.sql.SQLException) e.getCause()).getSQLState();
                     if (state != null && state.startsWith("23503")) {
@@ -202,6 +204,11 @@ public class StudentsHandler extends SecureHandler {
                     }
                 }
                 throw e;
+            }
+
+            if (newParentId[0] != -1) {
+                String link = Env.get("APP_URL") + "/activate?token=" + newParentToken[0];
+                Notifier.notify(newParentId[0], "ACCOUNT_CREATED", Map.of("link", link, "name", parentName));
             }
 
             Json.send(ex, 201, Map.of("message", "Student admitted successfully"));

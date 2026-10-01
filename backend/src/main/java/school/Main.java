@@ -63,6 +63,9 @@ public class Main {
         server.createContext("/api/teacher", new TeacherPortalHandler());
         server.createContext("/api/teacher-attendance", new TeacherAttendanceHandler());
 
+        // Bug 2 Fix: Register StudentPortalHandler
+        server.createContext("/api/student", new StudentPortalHandler());
+
         server.setExecutor(Executors.newFixedThreadPool(20));
         server.start();
         System.out.println("School Management System Backend started on port " + port);

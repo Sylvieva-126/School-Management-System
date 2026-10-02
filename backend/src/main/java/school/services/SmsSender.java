@@ -17,8 +17,12 @@ public class SmsSender {
     public static void send(String to, String message) throws Exception {
         String mode = Env.get("SMS_MODE", "mock");
 
+        if (message.length() > 160) {
+            message = message.substring(0, 157) + "...";
+        }
+
         if (!"live".equals(mode)) {
-            System.out.println("[MOCK SMS] To: " + to + " | Msg: " + message);
+            System.out.println("[MOCK SMS] → " + to + "\n " + message);
             return;
         }
 

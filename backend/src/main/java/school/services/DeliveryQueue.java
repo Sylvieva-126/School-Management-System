@@ -1,4 +1,3 @@
-// backend/src/main/java/school/services/DeliveryQueue.java
 package school.services;
 
 import school.config.Database;
@@ -11,7 +10,6 @@ public class DeliveryQueue {
 
     public static void submit(int userId, String channel, String event, String recipient, String title, String body) {
         String sql = "INSERT INTO notification_deliveries (user_id, channel, event, recipient, status) VALUES (?, ?, ?, ?, 'queued')";
-        System.out.println("DEBUG SQL: " + sql + " | Params: " + userId + ", " + channel + ", " + event + ", " + recipient);
 
         long generatedId = -1;
         try {

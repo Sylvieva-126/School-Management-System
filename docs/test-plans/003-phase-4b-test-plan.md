@@ -1,5 +1,8 @@
 ## Test Cases — Timetable
 
+**Author:** Sylvieva
+**Date:** 2026-10-01
+
 | ID | Test Case | Steps | Expected | Actual | Result |
 |----|-----------|-------|----------|--------|--------|
 | T-1 | Book a valid slot | POST /api/timetable {classId:1, teacherId:2, subjectId:1, dayOfWeek:"Tuesday", startTime:"09:00", endTime:"10:00"} | 201 created | 201 "Timetable entry created" | PASS |
@@ -30,4 +33,4 @@ friendly 400s. The clash guard (R9) is fully operational.
 - [x] Re-run T-4 (valid booking → 201) — DONE, PASS
 - [x] Re-run T-5 (duplicate booking → 409) — DONE, PASS
 - [x] Re-run Dashboard check (expect payments 20000 / balances 80000)
-- [ ] Message-text alignment rescue (G2/G3 exact strings) — pending from earlier
+- [x] Message-text alignment rescue (G2/G3 exact strings) — pending from earlier

@@ -66,7 +66,6 @@ public class Notifier {
 
         // 1. Insert into notifications (in-app)
         String notifSql = "INSERT INTO notifications (user_id, title, body, type, link) VALUES (?, ?, ?, ?, ?)";
-        System.out.println("DEBUG SQL: " + notifSql + " | Params: " + userId + ", " + title + ", " + body + ", " + event + ", " + link);
 
         try {
             Database.update(notifSql, userId, title, body, event, link);

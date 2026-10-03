@@ -44,9 +44,10 @@ public class StudentsHandler extends SecureHandler {
     @Override
     protected void handleSecure(HttpExchange ex, User user) throws Exception {
         requireRole(user, "super_admin", "admin");
+        String path = ex.getRequestURI().getPath();
         String method = ex.getRequestMethod();
 
-        if ("GET".equalsIgnoreCase(method)) {
+        if ("/api/students".equals(path) && "GET".equalsIgnoreCase(method)) {
             String query = ex.getRequestURI().getQuery();
             String q = "";
             int page = 1;
@@ -86,7 +87,7 @@ public class StudentsHandler extends SecureHandler {
             return;
         }
 
-        if ("POST".equalsIgnoreCase(method)) {
+        if ("/api/students".equals(path) && "POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
 
             String rawFullName = body.get("fullName") != null ? ((String) body.get("fullName")).trim() : null;
@@ -214,7 +215,53 @@ public class StudentsHandler extends SecureHandler {
             Json.send(ex, 201, Map.of("message", "Student admitted successfully"));
             return;
         }
-        throw new ApiError(405, "Method not allowed");
+
+        if (path.matches("/api/students/\\d+/class") && "PATCH".equalsIgnoreCase(method)) {
+            int studentId = pathInt(path.split("/")[3]);
+            Map<String, Object> body = Json.parseBody(ex);
+            int classId = asInt(body.get("classId"));
+
+            Map<String, Object> student = Database.queryOne("SELECT id, full_name, class_id, graduated FROM students WHERE id = ?", studentId);
+            if (student == null) throw new ApiError(404, "Student not found");
+            if (Boolean.TRUE.equals(student.get("graduated"))) {
+                throw new ApiError(400, "Student has graduated and cannot be moved");
+            }
+
+            verifyExists("classes", classId, "Class");
+
+            Database.update("UPDATE students SET class_id = ? WHERE id = ?", classId, studentId);
+
+            AuditLogger.success(user, "STUDENT_MOVED", "students", studentId,
+                    Map.of("class_id", student.get("class_id")),
+                    Map.of("class_id", classId, "student_name", student.get("full_name"))
+            );
+
+            Json.send(ex, 200, Map.of("message", "Student moved successfully"));
+            return;
+        }
+
+        if (path.matches("/api/students/\\d+/graduate") && "PATCH".equalsIgnoreCase(method)) {
+            int studentId = pathInt(path.split("/")[3]);
+
+            Map<String, Object> student = Database.queryOne("SELECT id, full_name, user_id, graduated FROM students WHERE id = ?", studentId);
+            if (student == null) throw new ApiError(404, "Student not found");
+            if (Boolean.TRUE.equals(student.get("graduated"))) {
+                throw new ApiError(400, "Student has already graduated");
+            }
+
+            int userId = ((Number) student.get("user_id")).intValue();
+
+            Database.transaction(con -> {
+                Database.update(con, "UPDATE students SET graduated = TRUE WHERE id = ?", studentId);
+                Database.update(con, "UPDATE users SET active = FALSE WHERE id = ?", userId);
+            });
+
+            AuditLogger.success(user, "STUDENTS_GRADUATED", "students", studentId, null, Map.of("student_name", student.get("full_name")));
+            Json.send(ex, 200, Map.of("message", "Student graduated successfully"));
+            return;
+        }
+
+        throw new ApiError(404, "Not found");
     }
 
     private String validateAndFormatName(String name) {

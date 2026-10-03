@@ -81,6 +81,11 @@ public class ExamsHandler extends SecureHandler {
             verifyExists("classes", classId, "Class");
             verifyExists("subjects", subjectId, "Subject");
 
+            Map<String, Object> term = Database.queryOne("SELECT closed FROM terms WHERE id = ?", termId);
+            if (Boolean.TRUE.equals(term.get("closed"))) {
+                throw new ApiError(400, "This term is closed.");
+            }
+
             try {
                 long id = Database.insertReturningId(
                         "INSERT INTO exams (name, term_id, class_id, subject_id, max_score, created_by) VALUES (?, ?, ?, ?, ?, ?)",

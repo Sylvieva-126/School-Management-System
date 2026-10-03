@@ -19,7 +19,6 @@ public class TeacherPortalHandler extends SecureHandler {
         requireMethod(ex, "GET");
 
         String path = ex.getRequestURI().getPath();
-        System.out.println("TeacherPortalHandler received: " + path);
 
         if ("/api/teacher/my-classes".equals(path)) {
             List<Map<String, Object>> classes = Database.query(
@@ -55,6 +54,20 @@ public class TeacherPortalHandler extends SecureHandler {
             );
             double percentage = Stats.teacherAttendancePercentage(user.id);
             Json.send(ex, 200, Map.of("records", records, "percentage", percentage));
+            return;
+        }
+
+        if (path.startsWith("/api/teacher/class/") && path.endsWith("/students")) {
+            int classId = pathInt(path.replace("/api/teacher/class/", "").replace("/students", ""));
+
+            Map<String, Object> assignment = Database.queryOne("SELECT 1 FROM teacher_assignments WHERE teacher_id = ? AND class_id = ?", user.id, classId);
+            if (assignment == null) throw new ApiError(403, "This is not your class");
+
+            List<Map<String, Object>> students = Database.query(
+                    "SELECT id, full_name, admission_no FROM students WHERE class_id = ? AND graduated = FALSE ORDER BY full_name ASC",
+                    classId
+            );
+            Json.send(ex, 200, students);
             return;
         }
 

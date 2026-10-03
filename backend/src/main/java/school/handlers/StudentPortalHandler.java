@@ -19,9 +19,7 @@ public class StudentPortalHandler extends SecureHandler {
         requireMethod(ex, "GET");
 
         String path = ex.getRequestURI().getPath();
-        System.out.println("StudentPortalHandler received: " + path);
 
-        // Get the student ID associated with this user
         Map<String, Object> studentRow = Database.queryOne("SELECT id, class_id FROM students WHERE user_id = ?", user.id);
         if (studentRow == null) {
             throw new ApiError(404, "Student record not found for this user");
@@ -31,11 +29,13 @@ public class StudentPortalHandler extends SecureHandler {
 
         if ("/api/student/me/results".equals(path)) {
             List<Map<String, Object>> results = Database.query(
-                    "SELECT r.*, e.name as exam_name, s.name as subject_name, t.name as term_name " +
+                    "SELECT r.*, e.name as exam_name, s.name as subject_name, t.name as term_name, u.full_name as class_teacher_name " +
                             "FROM results r " +
                             "JOIN exams e ON r.exam_id = e.id " +
                             "JOIN subjects s ON e.subject_id = s.id " +
                             "JOIN terms t ON e.term_id = t.id " +
+                            "LEFT JOIN classes c ON e.class_id = c.id " +
+                            "LEFT JOIN users u ON c.class_teacher_id = u.id " +
                             "WHERE r.student_id = ? AND e.published = TRUE " +
                             "ORDER BY e.id DESC",
                     studentId
@@ -69,11 +69,12 @@ public class StudentPortalHandler extends SecureHandler {
                 return;
             }
             List<Map<String, Object>> timetable = Database.query(
-                    "SELECT t.*, c.name as class_name, u.full_name as teacher_name, s.name as subject_name " +
+                    "SELECT t.*, c.name as class_name, u.full_name as teacher_name, s.name as subject_name, ct.full_name as class_teacher_name " +
                             "FROM timetable t " +
                             "JOIN classes c ON t.class_id = c.id " +
                             "JOIN users u ON t.teacher_id = u.id " +
                             "JOIN subjects s ON t.subject_id = s.id " +
+                            "LEFT JOIN users ct ON c.class_teacher_id = ct.id " +
                             "WHERE t.class_id = ? " +
                             "ORDER BY t.day_of_week, t.start_time",
                     classId

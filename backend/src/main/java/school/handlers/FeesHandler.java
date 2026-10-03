@@ -108,12 +108,9 @@ public class FeesHandler extends SecureHandler {
             final BigDecimal amount = new BigDecimal(String.valueOf(amountNum));
 
             Map<String, Object> invoice = Database.queryOne(
-                    "SELECT i.balance, i.student_id, t.closed FROM invoices i JOIN terms t ON i.term_id = t.id WHERE i.id = ?", invoiceId
+                    "SELECT i.balance, i.student_id FROM invoices i WHERE i.id = ?", invoiceId
             );
             if (invoice == null) throw new ApiError(404, "Invoice not found");
-            if (Boolean.TRUE.equals(invoice.get("closed"))) {
-                throw new ApiError(400, "This term is closed.");
-            }
 
             BigDecimal currentBalance = new BigDecimal(invoice.get("balance").toString());
             if (amount.compareTo(currentBalance) > 0) {

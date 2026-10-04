@@ -13,7 +13,6 @@ const [user, setUser] = useState(() => {
     return localStorage.getItem('token') && saved ? saved : null;
   } catch { return null; }
 });
-
   const login = (token, userData) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));

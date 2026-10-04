@@ -1,3 +1,4 @@
+// src/main/java/school/handlers/SessionsHandler.java
 package school.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -46,6 +47,9 @@ public class SessionsHandler extends SecureHandler {
 
         if (path.startsWith("/api/sessions/activate/") && "POST".equalsIgnoreCase(method)) {
             int id = pathInt(path.substring("/api/sessions/activate/".length()));
+            Map<String, Object> session = Database.queryOne("SELECT id FROM academic_sessions WHERE id = ?", id);
+            if (session == null) throw new ApiError(404, "Session not found");
+
             Database.transaction(con -> {
                 Database.update(con, "UPDATE academic_sessions SET active = FALSE");
                 Database.update(con, "UPDATE academic_sessions SET active = TRUE WHERE id = ?", id);
@@ -79,6 +83,11 @@ public class SessionsHandler extends SecureHandler {
 
         if (path.startsWith("/api/terms/activate/") && "POST".equalsIgnoreCase(method)) {
             int id = pathInt(path.substring("/api/terms/activate/".length()));
+            Map<String, Object> term = Database.queryOne("SELECT closed FROM terms WHERE id = ?", id);
+            if (term == null) throw new ApiError(404, "Term not found");
+            if (Boolean.TRUE.equals(term.get("closed"))) {
+                throw new ApiError(400, "Term is closed. Reopen it first.");
+            }
             Database.transaction(con -> {
                 Database.update(con, "UPDATE terms SET active = FALSE");
                 Database.update(con, "UPDATE terms SET active = TRUE WHERE id = ?", id);
@@ -90,16 +99,29 @@ public class SessionsHandler extends SecureHandler {
 
         if (path.startsWith("/api/terms/close/") && "POST".equalsIgnoreCase(method)) {
             int id = pathInt(path.substring("/api/terms/close/".length()));
-            Database.update("UPDATE terms SET closed = TRUE WHERE id = ?", id);
-            AuditLogger.success(user, "TERM_CLOSED", "terms", id, null, Map.of("closed", true));
+            Map<String, Object> term = Database.queryOne("SELECT closed FROM terms WHERE id = ?", id);
+            if (term == null) throw new ApiError(404, "Term not found");
+            if (Boolean.TRUE.equals(term.get("closed"))) throw new ApiError(400, "Term is already closed");
+
+            // FIX: closing also deactivates — no more "closed but still active"
+            Database.update("UPDATE terms SET closed = TRUE, active = FALSE WHERE id = ?", id);
+            AuditLogger.success(user, "TERM_CLOSED", "terms", id, null, Map.of("closed", true, "active", false));
             Json.send(ex, 200, Map.of("message", "Term closed"));
             return;
         }
 
         if (path.startsWith("/api/terms/reopen/") && "POST".equalsIgnoreCase(method)) {
             int id = pathInt(path.substring("/api/terms/reopen/".length()));
-            Database.update("UPDATE terms SET closed = FALSE WHERE id = ?", id);
-            AuditLogger.success(user, "TERM_REOPENED", "terms", id, null, Map.of("closed", false));
+            Map<String, Object> term = Database.queryOne("SELECT closed FROM terms WHERE id = ?", id);
+            if (term == null) throw new ApiError(404, "Term not found");
+            if (!Boolean.TRUE.equals(term.get("closed"))) throw new ApiError(400, "Term is not closed");
+
+            // FIX: reopening makes this the single active term
+            Database.transaction(con -> {
+                Database.update(con, "UPDATE terms SET active = FALSE");
+                Database.update(con, "UPDATE terms SET closed = FALSE, active = TRUE WHERE id = ?", id);
+            });
+            AuditLogger.success(user, "TERM_REOPENED", "terms", id, null, Map.of("closed", false, "active", true));
             Json.send(ex, 200, Map.of("message", "Term reopened"));
             return;
         }

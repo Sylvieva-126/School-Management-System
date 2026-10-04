@@ -1,4 +1,4 @@
-// backend/src/main/java/school/handlers/TeachersHandler.java
+// src/main/java/school/handlers/TeachersHandler.java
 package school.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -21,9 +21,10 @@ public class TeachersHandler extends SecureHandler {
     @Override
     protected void handleSecure(HttpExchange ex, User user) throws Exception {
         requireRole(user, "super_admin", "admin");
+        String path = ex.getRequestURI().getPath();
         String method = ex.getRequestMethod();
 
-        if ("GET".equalsIgnoreCase(method)) {
+        if ("/api/teachers".equals(path) && "GET".equalsIgnoreCase(method)) {
             List<Map<String, Object>> teachers = Database.query(
                     "SELECT id, full_name, email, phone, active FROM users WHERE role = 'teacher' ORDER BY full_name ASC"
             );
@@ -31,7 +32,7 @@ public class TeachersHandler extends SecureHandler {
             return;
         }
 
-        if ("POST".equalsIgnoreCase(method)) {
+        if ("/api/teachers".equals(path) && "POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
 
             String fullName = body.get("fullName") != null ? ((String) body.get("fullName")).trim() : null;
@@ -94,6 +95,25 @@ public class TeachersHandler extends SecureHandler {
             ));
             return;
         }
+
+        // NEW: remove a teacher (deactivates login, kills sessions)
+        if (path.matches("/api/teachers/\\d+/deactivate") && "PATCH".equalsIgnoreCase(method)) {
+            int teacherId = pathInt(path.split("/")[3]);
+            Map<String, Object> t = Database.queryOne(
+                    "SELECT id, full_name, active FROM users WHERE id = ? AND role = 'teacher'", teacherId);
+            if (t == null) throw new ApiError(404, "Teacher not found");
+            if (Boolean.FALSE.equals(t.get("active"))) throw new ApiError(400, "Teacher is already removed");
+
+            Database.transaction(con -> {
+                Database.update(con, "UPDATE users SET active = FALSE WHERE id = ?", teacherId);
+                Database.update(con, "DELETE FROM session_tokens WHERE user_id = ?", teacherId);
+            });
+
+            AuditLogger.success(user, "TEACHER_DEACTIVATED", "users", teacherId, Map.of("active", true), Map.of("active", false));
+            Json.send(ex, 200, Map.of("message", "Teacher removed"));
+            return;
+        }
+
         throw new ApiError(405, "Method not allowed");
     }
 

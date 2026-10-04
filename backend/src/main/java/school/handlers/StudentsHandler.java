@@ -1,4 +1,4 @@
-// backend/src/main/java/school/handlers/StudentsHandler.java
+// src/main/java/school/handlers/StudentsHandler.java
 package school.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -47,6 +47,7 @@ public class StudentsHandler extends SecureHandler {
         String path = ex.getRequestURI().getPath();
         String method = ex.getRequestMethod();
 
+        // ===== GET /api/students (search + pagination) =====
         if ("/api/students".equals(path) && "GET".equalsIgnoreCase(method)) {
             String query = ex.getRequestURI().getQuery();
             String q = "";
@@ -87,6 +88,7 @@ public class StudentsHandler extends SecureHandler {
             return;
         }
 
+        // ===== POST /api/students (admit) =====
         if ("/api/students".equals(path) && "POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
 
@@ -119,6 +121,7 @@ public class StudentsHandler extends SecureHandler {
 
             final int[] newParentId = {-1};
             final String[] newParentToken = {null};
+            final int[] newStudentUserId = {-1};
             final String[] finalAdmNoOut = {null};
 
             try {
@@ -126,8 +129,11 @@ public class StudentsHandler extends SecureHandler {
                     String finalAdmNo = admissionNo;
                     if (finalAdmNo == null || finalAdmNo.isEmpty()) {
                         int year = Year.now().getValue();
-                        long count = ((Number) Database.queryOne(con, "SELECT COUNT(*) as c FROM students").get("c")).longValue();
-                        finalAdmNo = String.format("%d-%04d", year, count + 1);
+                        Map<String, Object> maxRow = Database.queryOne(con,
+                                "SELECT COALESCE(MAX(CAST(NULLIF(SPLIT_PART(admission_no, '-', 2), '') AS integer)), 0) AS mx " +
+                                        "FROM students WHERE admission_no LIKE ?", year + "-%");
+                        int next = ((Number) maxRow.get("mx")).intValue() + 1;
+                        finalAdmNo = String.format("%d-%04d", year, next);
                     } else {
                         if (Database.queryOne(con, "SELECT id FROM students WHERE admission_no = ?", finalAdmNo) != null) {
                             throw new ApiError(400, "This admission number is already in use");
@@ -145,6 +151,8 @@ public class StudentsHandler extends SecureHandler {
                             studentUserId, finalAdmNo, fullName, classId, sessionId
                     ).get("id")).intValue();
 
+                    newStudentUserId[0] = studentUserId;
+
                     Map<String, Object> existingUser = Database.queryOne(con, "SELECT id, role FROM users WHERE phone = ?", parentPhone);
                     int parentId;
 
@@ -153,6 +161,16 @@ public class StudentsHandler extends SecureHandler {
                             throw new ApiError(400, "This phone number is already registered to a non-parent account");
                         }
                         parentId = ((Number) existingUser.get("id")).intValue();
+
+                        // FIX: if this parent has never activated, RESEND a fresh activation link
+                        Map<String, Object> parentUser = Database.queryOne(con,
+                                "SELECT must_change_password FROM users WHERE id = ?", parentId);
+                        if (Boolean.TRUE.equals(parentUser.get("must_change_password"))) {
+                            String token = generateToken();
+                            Database.update(con, "INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", token, parentId);
+                            newParentId[0] = parentId;
+                            newParentToken[0] = token;
+                        }
                     } else {
                         try {
                             parentId = ((Number) Database.queryOne(con,
@@ -207,15 +225,28 @@ public class StudentsHandler extends SecureHandler {
                 throw e;
             }
 
+            // FIX: the STUDENT always gets a fresh activation link (students never had one before)
+            String studentToken = generateToken();
+            Database.update("INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", studentToken, newStudentUserId[0]);
+            String studentLink = Env.get("APP_URL") + "/activate?token=" + studentToken;
+
             if (newParentId[0] != -1) {
-                String link = Env.get("APP_URL") + "/activate?token=" + newParentToken[0];
-                Notifier.notify(newParentId[0], "ACCOUNT_CREATED", Map.of("link", link, "name", parentName));
+                String parentLink = Env.get("APP_URL") + "/activate?token=" + newParentToken[0];
+                Notifier.notify(newParentId[0], "ACCOUNT_CREATED", Map.of("link", parentLink, "name", parentName));
             }
 
-            Json.send(ex, 201, Map.of("message", "Student admitted successfully"));
+            Map<String, Object> resp = new java.util.LinkedHashMap<>();
+            resp.put("message", "Student admitted successfully");
+            resp.put("admissionNo", finalAdmNoOut[0]);
+            resp.put("studentActivationLink", studentLink);
+            if (newParentId[0] != -1) {
+                resp.put("parentActivationLink", Env.get("APP_URL") + "/activate?token=" + newParentToken[0]);
+            }
+            Json.send(ex, 201, resp);
             return;
         }
 
+        // ===== PATCH /api/students/{id}/class (manual promotion / move) =====
         if (path.matches("/api/students/\\d+/class") && "PATCH".equalsIgnoreCase(method)) {
             int studentId = pathInt(path.split("/")[3]);
             Map<String, Object> body = Json.parseBody(ex);
@@ -240,6 +271,7 @@ public class StudentsHandler extends SecureHandler {
             return;
         }
 
+        // ===== PATCH /api/students/{id}/graduate (SS3 only, locks out login) =====
         if (path.matches("/api/students/\\d+/graduate") && "PATCH".equalsIgnoreCase(method)) {
             int studentId = pathInt(path.split("/")[3]);
 
@@ -247,6 +279,17 @@ public class StudentsHandler extends SecureHandler {
             if (student == null) throw new ApiError(404, "Student not found");
             if (Boolean.TRUE.equals(student.get("graduated"))) {
                 throw new ApiError(400, "Student has already graduated");
+            }
+
+            // FIX: only SS3 students can graduate (matches "SS 3A", "SS3 Science", etc.)
+            Map<String, Object> cls = Database.queryOne(
+                    "SELECT c.name FROM students s JOIN classes c ON s.class_id = c.id WHERE s.id = ?", studentId);
+            if (cls == null || cls.get("name") == null) {
+                throw new ApiError(400, "Student has no class assigned");
+            }
+            String className = ((String) cls.get("name")).toLowerCase().replaceAll("[\\s_-]", "");
+            if (!className.startsWith("ss3")) {
+                throw new ApiError(400, "Only SS3 students can graduate");
             }
 
             int userId = ((Number) student.get("user_id")).intValue();
@@ -258,6 +301,26 @@ public class StudentsHandler extends SecureHandler {
 
             AuditLogger.success(user, "STUDENTS_GRADUATED", "students", studentId, null, Map.of("student_name", student.get("full_name")));
             Json.send(ex, 200, Map.of("message", "Student graduated successfully"));
+            return;
+        }
+
+        // ===== PATCH /api/students/{id}/deactivate (remove student, revokes login) =====
+        if (path.matches("/api/students/\\d+/deactivate") && "PATCH".equalsIgnoreCase(method)) {
+            int studentId = pathInt(path.split("/")[3]);
+
+            Map<String, Object> s = Database.queryOne(
+                    "SELECT s.user_id, s.full_name, s.graduated, u.active FROM students s JOIN users u ON s.user_id = u.id WHERE s.id = ?", studentId);
+            if (s == null) throw new ApiError(404, "Student not found");
+            if (Boolean.TRUE.equals(s.get("graduated"))) throw new ApiError(400, "Student has already graduated");
+            if (Boolean.FALSE.equals(s.get("active"))) throw new ApiError(400, "Student is already removed");
+
+            Database.transaction(con -> {
+                Database.update(con, "UPDATE users SET active = FALSE WHERE id = ?", s.get("user_id"));
+                Database.update(con, "DELETE FROM session_tokens WHERE user_id = ?", s.get("user_id"));
+            });
+
+            AuditLogger.success(user, "STUDENT_DEACTIVATED", "students", studentId, null, Map.of("name", s.get("full_name")));
+            Json.send(ex, 200, Map.of("message", "Student removed"));
             return;
         }
 

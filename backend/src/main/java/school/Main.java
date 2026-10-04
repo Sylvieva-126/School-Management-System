@@ -1,4 +1,4 @@
-// backend/src/main/java/school/Main.java
+// src/main/java/school/Main.java
 package school;
 
 import com.sun.net.httpserver.HttpServer;
@@ -73,7 +73,10 @@ public class Main {
         server.createContext("/api/broadcast", new BroadcastHandler());
         server.createContext("/api/deliveries", new DeliveryLogHandler());
 
-        // New Features
+        // Activity Logs (Super Admin only)
+        server.createContext("/api/audit-logs", new AuditLogHandler());
+
+        // Report Cards (teacher upload, admin publish, student/parent download)
         server.createContext("/api/report-cards", new ReportCardUploadHandler());
 
         server.setExecutor(Executors.newFixedThreadPool(20));

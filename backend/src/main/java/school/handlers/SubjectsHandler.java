@@ -1,3 +1,4 @@
+// src/main/java/school/handlers/SubjectsHandler.java
 package school.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -30,7 +31,12 @@ public class SubjectsHandler extends SecureHandler {
                 throw new ApiError(400, "Subject name is required");
             }
 
-            Database.update("INSERT INTO subjects (name) VALUES (?)", name);
+            // FIX: reject duplicate subject names (case-insensitive)
+            if (Database.queryOne("SELECT id FROM subjects WHERE LOWER(name) = LOWER(?)", name.trim()) != null) {
+                throw new ApiError(409, "Subject already exists");
+            }
+
+            Database.update("INSERT INTO subjects (name) VALUES (?)", name.trim());
             Json.send(ex, 201, Map.of("message", "Subject created successfully"));
             return;
         }

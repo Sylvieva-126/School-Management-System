@@ -98,7 +98,7 @@ public class AttendanceHandler extends SecureHandler {
                 throw new ApiError(400, "Invalid date format. Use YYYY-MM-DD");
             }
 
-            // ✅ SAFE RECORDS PARSING
+            // SAFE RECORDS PARSING
             List<Map<String, Object>> records = new ArrayList<>();
             Object rawRecords = body.get("records");
 

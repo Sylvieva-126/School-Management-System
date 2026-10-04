@@ -1,4 +1,4 @@
-// backend/src/main/java/school/handlers/ParentPortalHandler.java
+// src/main/java/school/handlers/ParentPortalHandler.java
 package school.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -11,6 +11,7 @@ import school.services.Stats;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,7 @@ public class ParentPortalHandler extends SecureHandler {
                     user.id
             );
 
+            // FIX: LinkedHashMap allows nulls (Map.of crashes when class/teacher is unassigned)
             List<Map<String, Object>> result = new ArrayList<>();
             for (Map<String, Object> child : children) {
                 int studentId = ((Number) child.get("id")).intValue();
@@ -44,17 +46,34 @@ public class ParentPortalHandler extends SecureHandler {
                 );
                 BigDecimal balance = new BigDecimal(feeRow.get("total_balance").toString());
 
-                result.add(Map.of(
-                        "id", studentId,
-                        "full_name", child.get("full_name"),
-                        "admission_no", child.get("admission_no"),
-                        "class_name", child.get("class_name"),
-                        "class_teacher_name", child.get("class_teacher_name"),
-                        "attendance_percentage", attendance,
-                        "fee_balance", balance
-                ));
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id", studentId);
+                row.put("full_name", child.get("full_name"));
+                row.put("admission_no", child.get("admission_no"));
+                row.put("class_name", child.get("class_name"));                  // may be null
+                row.put("class_teacher_name", child.get("class_teacher_name"));  // may be null
+                row.put("attendance_percentage", attendance);
+                row.put("fee_balance", balance);
+                result.add(row);
             }
             Json.send(ex, 200, result);
+            return;
+        }
+
+        if (path.matches("/api/parent/children/\\d+/report-cards")) {
+            int studentId = pathInt(path.split("/")[4]);
+            verifyOwnership(user.id, studentId);
+
+            List<Map<String, Object>> cards = Database.query(
+                    "SELECT r.id, r.file_name, r.file_type, r.uploaded_at, e.name AS exam_name, t.name AS term_name " +
+                            "FROM report_card_uploads r " +
+                            "JOIN exams e ON r.exam_id = e.id " +
+                            "JOIN terms t ON e.term_id = t.id " +
+                            "WHERE r.student_id = ? AND r.published = TRUE " +
+                            "ORDER BY r.uploaded_at DESC",
+                    studentId
+            );
+            Json.send(ex, 200, cards);
             return;
         }
 

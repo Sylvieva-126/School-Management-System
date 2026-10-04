@@ -1,3 +1,4 @@
+//src/main/java/school/handlers/DashboardHandler.java
 package school.handlers;
 
 import com.sun.net.httpserver.HttpExchange;

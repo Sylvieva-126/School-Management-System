@@ -1,6 +1,5 @@
-// backend/src/main/java/school/handlers/StudentPortalHandler.java
+// src/main/java/school/handlers/StudentPortalHandler.javapackage school.handlers;
 package school.handlers;
-
 import com.sun.net.httpserver.HttpExchange;
 import school.auth.User;
 import school.config.Database;
@@ -8,6 +7,7 @@ import school.http.ApiError;
 import school.http.Json;
 import school.http.SecureHandler;
 import school.services.Stats;
+
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +26,21 @@ public class StudentPortalHandler extends SecureHandler {
         }
         int studentId = ((Number) studentRow.get("id")).intValue();
         Integer classId = studentRow.get("class_id") != null ? ((Number) studentRow.get("class_id")).intValue() : null;
+
+        // NEW: published report cards (drives the "My Report Cards" list + download buttons)
+        if ("/api/student/me/report-cards".equals(path)) {
+            List<Map<String, Object>> cards = Database.query(
+                    "SELECT r.id, r.file_name, r.file_type, r.uploaded_at, e.name AS exam_name, t.name AS term_name " +
+                            "FROM report_card_uploads r " +
+                            "JOIN exams e ON r.exam_id = e.id " +
+                            "JOIN terms t ON e.term_id = t.id " +
+                            "WHERE r.student_id = ? AND r.published = TRUE " +
+                            "ORDER BY r.uploaded_at DESC",
+                    studentId
+            );
+            Json.send(ex, 200, cards);
+            return;
+        }
 
         if ("/api/student/me/results".equals(path)) {
             List<Map<String, Object>> results = Database.query(

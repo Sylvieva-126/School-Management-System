@@ -15,6 +15,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Year;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -162,7 +163,7 @@ public class StudentsHandler extends SecureHandler {
                         }
                         parentId = ((Number) existingUser.get("id")).intValue();
 
-                        // FIX: if this parent has never activated, RESEND a fresh activation link
+                        // RESEND activation link if this parent has never activated
                         Map<String, Object> parentUser = Database.queryOne(con,
                                 "SELECT must_change_password FROM users WHERE id = ?", parentId);
                         if (Boolean.TRUE.equals(parentUser.get("must_change_password"))) {
@@ -225,7 +226,7 @@ public class StudentsHandler extends SecureHandler {
                 throw e;
             }
 
-            // FIX: the STUDENT always gets a fresh activation link (students never had one before)
+            // STUDENT always gets a fresh activation link (returned to admin, shown in UI)
             String studentToken = generateToken();
             Database.update("INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", studentToken, newStudentUserId[0]);
             String studentLink = Env.get("APP_URL") + "/activate?token=" + studentToken;
@@ -235,7 +236,7 @@ public class StudentsHandler extends SecureHandler {
                 Notifier.notify(newParentId[0], "ACCOUNT_CREATED", Map.of("link", parentLink, "name", parentName));
             }
 
-            Map<String, Object> resp = new java.util.LinkedHashMap<>();
+            Map<String, Object> resp = new LinkedHashMap<>();
             resp.put("message", "Student admitted successfully");
             resp.put("admissionNo", finalAdmNoOut[0]);
             resp.put("studentActivationLink", studentLink);
@@ -281,7 +282,7 @@ public class StudentsHandler extends SecureHandler {
                 throw new ApiError(400, "Student has already graduated");
             }
 
-            // FIX: only SS3 students can graduate (matches "SS 3A", "SS3 Science", etc.)
+            // Only SS3 students can graduate (matches "SS 3A", "SS3 Science", etc.)
             Map<String, Object> cls = Database.queryOne(
                     "SELECT c.name FROM students s JOIN classes c ON s.class_id = c.id WHERE s.id = ?", studentId);
             if (cls == null || cls.get("name") == null) {
@@ -321,6 +322,25 @@ public class StudentsHandler extends SecureHandler {
 
             AuditLogger.success(user, "STUDENT_DEACTIVATED", "students", studentId, null, Map.of("name", s.get("full_name")));
             Json.send(ex, 200, Map.of("message", "Student removed"));
+            return;
+        }
+
+        // ===== POST /api/students/{id}/reset-password (admin — reset link for students, who have no email/phone) =====
+        if (path.matches("/api/students/\\d+/reset-password") && "POST".equalsIgnoreCase(method)) {
+            int studentId = pathInt(path.split("/")[3]);
+            Map<String, Object> student = Database.queryOne(
+                    "SELECT s.user_id, s.full_name, u.active FROM students s JOIN users u ON s.user_id = u.id WHERE s.id = ?", studentId);
+            if (student == null) throw new ApiError(404, "Student not found");
+            if (Boolean.FALSE.equals(student.get("active"))) throw new ApiError(400, "Student account is deactivated");
+
+            int userId = ((Number) student.get("user_id")).intValue();
+            String token = generateToken();
+            Database.update("INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", token, userId);
+            Database.update("DELETE FROM session_tokens WHERE user_id = ?", userId); // kill any live sessions
+
+            String link = Env.get("APP_URL") + "/activate?token=" + token;
+            AuditLogger.success(user, "STUDENT_PASSWORD_RESET", "users", userId, null, Map.of("name", student.get("full_name")));
+            Json.send(ex, 200, Map.of("message", "Reset link generated. Give it to the student.", "resetLink", link));
             return;
         }
 

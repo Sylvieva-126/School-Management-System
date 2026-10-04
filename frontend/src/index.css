@@ -1,4 +1,5 @@
 :root, [data-theme="light"] {
+  color-scheme: light;
   --bg: #FFFFFF;
   --surface: #FFFFFF;
   --primary: #0C71C6;
@@ -15,6 +16,7 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg: #000000;
   --surface: #1C1F22;
   --primary: #0055FF;
@@ -37,9 +39,16 @@
   padding: 0;
 }
 
-body {
-font-family:cursive;
+#root { min-height: 100vh; }
+
+html, body {
   background-color: var(--bg);
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--text);
   transition: background-color 0.15s ease, color 0.15s ease;
   line-height: 1.5;
@@ -55,6 +64,15 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+h1, h2, h3 {
+  font-family: 'Sora', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+/* DARK SCROLLBARS */
+[data-theme="dark"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+[data-theme="dark"] ::-webkit-scrollbar-track { background: #1C1F22; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #2A2F35; border-radius: 5px; }
 
 /* FORMS & BUTTONS */
 label {
@@ -204,6 +222,17 @@ th {
   overflow-y: auto;
 }
 
+/*card */
+
+/* Center a card in the available content space (below the topbar) */
+.center-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* topbar (60px) + content-area padding (1.5rem top + 1.5rem bottom) */
+  min-height: calc(100vh - 60px - 3rem);
+  padding: 1.5rem;
+}
 /* RESPONSIVE */
 @media (max-width: 900px) {
   .sidebar {
@@ -223,5 +252,5 @@ th {
     background-color: var(--text);
     opacity: 0.5;
     z-index: 30;
-    }
+  }
 }

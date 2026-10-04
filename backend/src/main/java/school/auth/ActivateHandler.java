@@ -1,3 +1,4 @@
+// src/main/java/school/auth/ActivateHandler.java
 package school.auth;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -21,9 +22,9 @@ public class ActivateHandler extends SecureHandler {
         if (token == null || password == null) {
             throw new ApiError(400, "Token and password are required");
         }
-        if (password.length() < 8) {
-            throw new ApiError(400, "Password must be at least 8 characters");
-        }
+
+        // FULL complexity policy: 8+ chars, upper, lower, number, special char
+        PasswordPolicy.validate(password);
 
         String sql = "SELECT user_id FROM activation_tokens WHERE token = ? AND used = FALSE AND expires_at > now()";
         Map<String, Object> tokenRow = Database.queryOne(sql, token);

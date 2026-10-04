@@ -1,3 +1,4 @@
+// src/main/java/school/auth/ChangePasswordHandler.java
 package school.auth;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -26,13 +27,18 @@ public class ChangePasswordHandler extends SecureHandler {
         if (oldPassword == null || newPassword == null) {
             throw new ApiError(400, "Old and new passwords are required");
         }
-        if (newPassword.length() < 8) {
-            throw new ApiError(400, "New password must be at least 8 characters");
-        }
+
+        // FULL complexity policy: 8+ chars, upper, lower, number, special char
+        PasswordPolicy.validate(newPassword);
 
         Map<String, Object> row = Database.queryOne("SELECT password_hash FROM users WHERE id = ?", user.id);
         if (row == null || !BCrypt.checkpw(oldPassword, (String) row.get("password_hash"))) {
             throw new ApiError(400, "Incorrect old password");
+        }
+
+        // Reject reusing the current password
+        if (BCrypt.checkpw(newPassword, (String) row.get("password_hash"))) {
+            throw new ApiError(400, "New password must be different from the old password");
         }
 
         String hash = BCrypt.hashpw(newPassword, BCrypt.gensalt(12));
@@ -40,7 +46,6 @@ public class ChangePasswordHandler extends SecureHandler {
 
         Database.transaction(con -> {
             Database.update(con, "UPDATE users SET password_hash = ?, must_change_password = FALSE WHERE id = ?", hash, user.id);
-            // THE BOOT: Delete all other session tokens for this user
             Database.update(con, "DELETE FROM session_tokens WHERE user_id = ? AND token != ?", user.id, currentToken);
         });
 

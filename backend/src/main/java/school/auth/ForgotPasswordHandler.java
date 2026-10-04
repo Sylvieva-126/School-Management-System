@@ -1,3 +1,4 @@
+// src/main/java/school/auth/ForgotPasswordHandler.java
 package school.auth;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -21,17 +22,35 @@ public class ForgotPasswordHandler extends SecureHandler {
         String identifier = (String) body.get("identifier");
 
         if (identifier != null && !identifier.trim().isEmpty()) {
-            String sql = "SELECT id FROM users WHERE (email = ? OR phone = ?) AND active = TRUE";
-            Map<String, Object> row = Database.queryOne(sql, identifier, identifier);
+            String id = identifier.trim();
+
+            // Match by email OR phone OR admission number (students may try their admission no)
+            String sql = "SELECT u.id, u.full_name, u.email, u.phone, u.role FROM users u " +
+                    "LEFT JOIN students s ON s.user_id = u.id " +
+                    "WHERE (u.email = ? OR u.phone = ? OR s.admission_no = ?) AND u.active = TRUE";
+            Map<String, Object> row = Database.queryOne(sql, id, id, id);
 
             if (row != null) {
+                String email = row.get("email") == null ? null : row.get("email").toString().trim();
+                String phone = row.get("phone") == null ? null : row.get("phone").toString().trim();
+
+                if ((email == null || email.isEmpty()) && (phone == null || phone.isEmpty())) {
+                    // e.g. a STUDENT: no channel exists to deliver a self-service reset.
+                    // Respond honestly so the UI can guide them (admin generates the link instead).
+                    Json.send(ex, 200, Map.of(
+                            "message", "This account has no email or phone on file. Please ask the school office to reset your password."
+                    ));
+                    return;
+                }
+
                 int userId = ((Number) row.get("id")).intValue();
                 String token = generateToken();
 
                 Database.update("INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", token, userId);
 
                 String link = Env.get("APP_URL") + "/activate?token=" + token;
-                Notifier.notify(userId, "PASSWORD_RESET", Map.of("link", link));
+                String name = row.get("full_name") != null ? row.get("full_name").toString() : "";
+                Notifier.notify(userId, "PASSWORD_RESET", Map.of("link", link, "name", name));
             }
         }
 

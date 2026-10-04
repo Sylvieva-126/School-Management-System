@@ -3,10 +3,16 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('user');
-    return saved ? JSON.parse(saved) : null;
-  });
+//   const [user, setUser] = useState(() => {
+//     const saved = localStorage.getItem('user');
+//     return saved ? JSON.parse(saved) : null;
+//   });
+const [user, setUser] = useState(() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('user'));
+    return localStorage.getItem('token') && saved ? saved : null;
+  } catch { return null; }
+});
 
   const login = (token, userData) => {
     localStorage.setItem('token', token);

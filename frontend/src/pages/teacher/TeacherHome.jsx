@@ -6,8 +6,8 @@ import { formatDate } from '../../utils/format';
 export default function TeacherHome() {
   const [myClasses, setMyClasses] = useState([]);
   const [timetable, setTimetable] = useState([]);
-  const [attendance, setAttendance] = useState(null);   // { records, percentage }
-  const [studentsByClass, setStudentsByClass] = useState({}); // classId -> students
+  const [attendance, setAttendance] = useState(null);
+  const [studentsByClass, setStudentsByClass] = useState({});
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -67,8 +67,12 @@ export default function TeacherHome() {
     }
   };
 
-  const todayMarked = attendance?.records?.[0]?.date === new Date().toISOString().slice(0, 10)
-    ? attendance.records[0].status : null;
+  // FIX: backend returns dates as full ISO timestamps ("2026-10-04T00:00:00Z")
+  // — compare the first 10 chars against today's bare date, or it never matches.
+  const today = new Date().toISOString().slice(0, 10);
+  const todayMarked = attendance?.records?.[0] && String(attendance.records[0].date).slice(0, 10) === today
+    ? attendance.records[0].status
+    : null;
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const byDay = DAYS.map(d => ({ day: d, rows: timetable.filter(x => x.day_of_week === d) }));

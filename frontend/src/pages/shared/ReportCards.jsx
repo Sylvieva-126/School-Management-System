@@ -27,6 +27,7 @@ function TeacherUpload() {
   const [studentId, setStudentId] = useState('');
   const [examId, setExamId] = useState('');
   const [file, setFile] = useState(null);
+  const [fileName, setFileName] = useState('');
 
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
@@ -44,7 +45,7 @@ function TeacherUpload() {
           const sid = String(cls[0].subject_id);
           setClassId(cid);
           setSubjectId(sid);
-          // FIX: fetch students + exams for the auto-selected first class
+          // Fetch students + exams for the auto-selected first class
           const [stu, exs] = await Promise.all([
             apiFetch(`/teacher/class/${cid}/students`),
             apiFetch(`/exams/my?classId=${cid}&subjectId=${sid}`),
@@ -58,7 +59,6 @@ function TeacherUpload() {
     })();
   }, []);
 
-  // Class change → reload students AND exams scoped to that class+subject
   const pickClass = async (cid, sid) => {
     setStudentId('');
     setExamId('');
@@ -98,6 +98,7 @@ function TeacherUpload() {
       const data = await apiUpload('/report-cards/upload', fd);
       setMsg(data.message || 'Uploaded');
       setFile(null);
+      setFileName('');
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -142,8 +143,31 @@ function TeacherUpload() {
         </div>
         <div style={{ marginBottom: '1.25rem' }}>
           <label>Report card file (PDF, PNG, or JPEG — max 5MB)</label>
-          <input type="file" accept=".pdf,.png,.jpg,.jpeg"
-                 onChange={e => setFile(e.target.files[0])} required />
+          <input
+            id="rc-file"
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg"
+            onChange={e => {
+              const f = e.target.files[0];
+              setFile(f);
+              setFileName(f ? f.name : '');
+            }}
+            style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+          />
+          <label htmlFor="rc-file" className="btn-ghost"
+                 style={{
+                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                   width: '100%', cursor: 'pointer',
+                   border: '1px dashed var(--border)', borderRadius: 8, padding: '0.65rem 0.9rem'
+                 }}>
+            <FiUpload size={15} />
+            <span style={{
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              color: fileName ? 'var(--text)' : 'var(--text-muted)'
+            }}>
+              {fileName || 'Choose file — PDF, PNG, or JPEG'}
+            </span>
+          </label>
         </div>
         <button type="submit" className="btn-primary" disabled={busy || !studentId || !examId}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

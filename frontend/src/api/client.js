@@ -1,15 +1,15 @@
 // Token is SNAPSHOTTED per tab: each tab keeps the session it was loaded
 // (or logged in) with, even if another tab in the same browser logs in as
-// a different user. localStorage still mirrors the latest login so that
-// reloads adopt it.
-let currentToken = localStorage.getItem('token');
+// a different user. Session lives in sessionStorage — survives refresh,
+// cleared when the tab closes, so a new tab always starts at Login.
+let currentToken = sessionStorage.getItem('token');
 
 export function setCurrentToken(token) {
   currentToken = token;
   if (token) {
-    localStorage.setItem('token', token);
+    sessionStorage.setItem('token', token);
   } else {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
   }
 }
 
@@ -23,7 +23,7 @@ async function handle(res) {
   try { data = await res.json(); } catch { /* non-JSON */ }
   if (!res.ok) {
     if (res.status === 401) {
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
     }
     throw new Error(data?.message || `Request failed (${res.status})`);
   }
@@ -43,13 +43,13 @@ export async function apiFetch(endpoint, options = {}) {
   // A wrong password at login is ALSO a 401 — it must show "Invalid credentials",
   // not "Session expired" + reload.
   if (response.status === 401) {
-    const hadSession = !!(currentToken || localStorage.getItem('user'));
+    const hadSession = !!(currentToken || sessionStorage.getItem('user'));
     const path = window.location.pathname;
     const onPublicPage = path === '/login' || path === '/activate' || path === '/change-password';
 
     if (hadSession && !onPublicPage) {
       setCurrentToken(null);
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
       window.location.href = '/login';
       throw new Error('Session expired. Please log in again.');
     }
@@ -80,7 +80,7 @@ export async function apiUpload(endpoint, formData) {
   });
   if (res.status === 401) {
     setCurrentToken(null);
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
     window.location.href = '/login';
     throw new Error('Session expired. Please log in again.');
   }

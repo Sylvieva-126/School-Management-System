@@ -13,18 +13,14 @@ export default function NotificationBell() {
     try {
       const data = await apiFetch('/notifications/unread-count');
       setUnreadCount(data.count || 0);
-    } catch (err) {
-      // silently fail polling
-    }
+    } catch (err) { /* silent polling */ }
   };
 
   const fetchNotifications = async () => {
     try {
       const data = await apiFetch('/notifications');
       setNotifications(data);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   useEffect(() => {
@@ -35,9 +31,7 @@ export default function NotificationBell() {
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setIsOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -53,14 +47,13 @@ export default function NotificationBell() {
       await apiFetch(`/notifications/read/${id}`, { method: 'POST' });
       setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   return (
     <div style={{ position: 'relative' }} ref={dropdownRef}>
-      <button className="btn-ghost" onClick={toggleDropdown} aria-label="Notifications" style={{ position: 'relative', padding: '0.5rem' }}>
+      <button className="btn-ghost" onClick={toggleDropdown} aria-label="Notifications"
+              style={{ position: 'relative', padding: '0.5rem' }}>
         <FiBell size={20} />
         {unreadCount > 0 && (
           <span style={{
@@ -79,7 +72,7 @@ export default function NotificationBell() {
           position: 'absolute', right: 0, top: '100%', marginTop: '0.5rem',
           width: '320px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)',
           borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 50,
-          maxHeight: '400px', overflowY: 'auto'
+          maxHeight: '400px', overflowY: 'auto', overflowX: 'hidden'
         }}>
           <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', fontWeight: 'bold' }}>
             Notifications
@@ -90,11 +83,15 @@ export default function NotificationBell() {
             notifications.map(n => (
               <div key={n.id} style={{
                 padding: '1rem', borderBottom: '1px solid var(--border)',
-                backgroundColor: n.is_read ? 'transparent' : 'var(--border)',
-                cursor: n.is_read ? 'default' : 'pointer'
+                backgroundColor: n.is_read ? 'transparent' : 'var(--surface-2)',
+                cursor: n.is_read ? 'default' : 'pointer',
+                minWidth: 0, overflow: 'hidden'
               }} onClick={() => !n.is_read && markAsRead(n.id)}>
                 <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{n.title}</div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: '0.25rem 0' }}>{n.body}</div>
+                <div style={{
+                  fontSize: '0.875rem', color: 'var(--text-muted)', margin: '0.25rem 0',
+                  overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: 'normal'
+                }}>{n.body}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
                   <span>{formatDateTime(n.created_at)}</span>
                   {!n.is_read && <FiCheckCircle title="Click to mark read" />}

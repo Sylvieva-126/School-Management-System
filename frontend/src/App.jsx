@@ -13,6 +13,14 @@ import Teachers from './pages/admin/Teachers';
 import Fees from './pages/admin/Fees';
 import ReportCards from './pages/shared/ReportCards';
 import Exams from './pages/admin/Exams';
+import Academics from './pages/admin/Academics';
+import TimetablePage from './pages/admin/Timetable';
+import SessionsTerms from './pages/admin/SessionsTerms';
+import Assignments from './pages/admin/Assignments';
+import StudentPortal from './pages/student/StudentPortal';
+import ParentPortal from './pages/parent/ParentPortal';
+import TeacherHome from './pages/teacher/TeacherHome';
+import MarkAttendance from './pages/teacher/MarkAttendance';
 
 
 
@@ -55,9 +63,11 @@ export default function App() {
             <Route path="/admin" element={<RoleRoute roles={['admin', 'super_admin']}><Layout /></RoleRoute>}>
               <Route index element={<Navigate to="dashboard" replace />} />
                <Route path="dashboard" element={<Dashboard />} />
-               <Route path="sessions" element={<Placeholder title="Sessions & Terms" />} />
-              <Route path="classes" element={<Placeholder title="Classes" />} />
-              <Route path="subjects" element={<Placeholder title="Subjects" />} />
+            <Route path="classes" element={<Academics />} />
+            <Route path="subjects" element={<Navigate to="/admin/classes" replace />} />   {/* merged into Academics */}
+            <Route path="assignments" element={<Assignments />} />
+            <Route path="timetable" element={<TimetablePage />} />
+            <Route path="sessions" element={<SessionsTerms />} />
               <Route path="assignments" element={<Placeholder title="Teacher Assignments" />} />
                 <Route path="teachers" element={<Teachers />} />
                  <Route path="students" element={<Students />} />
@@ -71,25 +81,27 @@ export default function App() {
               <Route path="activity-log" element={<RoleRoute roles={['super_admin']}><Placeholder title="Activity Log" /></RoleRoute>} />
             </Route>
 
-            {/* TEACHER WING */}
-            <Route path="/teacher" element={<RoleRoute roles={['teacher']}><Layout /></RoleRoute>}>
-              <Route index element={<Placeholder title="Teacher Home" />} />
-              <Route path="my-classes" element={<Placeholder title="My Classes" />} />
-              <Route path="attendance" element={<Placeholder title="Mark Attendance" />} />
-             <Route path="report-cards" element={<ReportCards />} />
-              <Route path="timetable" element={<Placeholder title="My Timetable" />} />
-            </Route>
+                     {/* TEACHER WING */}
+                     <Route path="/teacher" element={<RoleRoute roles={['teacher']}><Layout /></RoleRoute>}>
+                       <Route index element={<TeacherHome />} />
+                       <Route path="attendance" element={<MarkAttendance />} />
+                       <Route path="report-cards" element={<ReportCards />} />
+                       {/* Covered by TeacherHome — uncomment if split out later:
+                       <Route path="my-classes" element={<Placeholder title="My Classes" />} />
+                       <Route path="timetable" element={<Placeholder title="My Timetable" />} />
+                       */}
+                     </Route>
 
             {/* PARENT WING */}
             <Route path="/parent" element={<RoleRoute roles={['parent']}><Layout /></RoleRoute>}>
-              <Route index element={<Placeholder title="My Children" />} />
-              <Route path="child/:id/report-cards" element={<Placeholder title="Child Report Cards" />} />
+                <Route index element={<ParentPortal />} />
+                  <Route path="child/:id/report-cards" element={<Placeholder title="Child Report Cards" />} />
               <Route path="child/:id/fees" element={<Placeholder title="Child Fees" />} />
             </Route>
 
             {/* STUDENT WING */}
             <Route path="/student" element={<RoleRoute roles={['student']}><Layout /></RoleRoute>}>
-              <Route index element={<Placeholder title="Student Home" />} />
+<Route index element={<StudentPortal />} />
               <Route path="report-cards" element={<Placeholder title="My Report Cards" />} />
               <Route path="attendance" element={<Placeholder title="My Attendance" />} />
               <Route path="fees" element={<Placeholder title="My Fees" />} />

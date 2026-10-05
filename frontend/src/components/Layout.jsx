@@ -214,7 +214,7 @@ export default function Layout() {
               onClick={closeSidebar}
               style={({ isActive }) => ({
                 display: 'flex', alignItems: 'center', gap: '0.75rem',
-                padding: '0.75rem 1.5rem',
+                padding: '0.55rem 1.25rem',
                 color: isActive ? 'var(--primary)' : 'var(--text)',
                 backgroundColor: isActive ? 'var(--border)' : 'transparent',
                 fontWeight: isActive ? '600' : '400'

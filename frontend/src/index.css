@@ -211,6 +211,15 @@ tbody tr:hover td { background-color: var(--surface-2); }
 
 td { font-variant-numeric: tabular-nums; }
 
+
+/* Compact admin tables — fit narrow content areas without horizontal scroll */
+.compact-table th, .compact-table td { padding: 0.5rem 0.6rem; }
+.compact-table .cell-truncate {
+  max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 /* ---------- BADGES (soft editorial style) ---------- */
 .badge {
   display: inline-flex;
@@ -226,8 +235,11 @@ td { font-variant-numeric: tabular-nums; }
 .badge-primary { background-color: var(--primary); color: var(--primary-text); }
 
 /* ---------- LAYOUT ---------- */
-.layout-root { display: flex; min-height: 100vh; }
-
+.layout-root {
+  display: flex;
+  height: 100vh;      /* app = exactly one viewport; no page-level scroll */
+  overflow: hidden;   /* the WINDOW never scrolls */
+}
 /* The chalkboard sidebar — ink navy in BOTH themes (brand anchor) */
 .sidebar {
   width: 250px;
@@ -261,6 +273,7 @@ td { font-variant-numeric: tabular-nums; }
 
 .topbar {
   height: 60px;
+  flex-shrink: 0;
   background-color: var(--bg);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -268,9 +281,24 @@ td { font-variant-numeric: tabular-nums; }
   justify-content: space-between;
   padding: 0 1.5rem;
 }
+/* Sidebar nav: thin scroll, only visible when needed */
+.sidebar nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.sidebar nav::-webkit-scrollbar { width: 6px; }
+.sidebar nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
 
-.content-area { padding: 1.5rem; flex: 1; overflow-y: auto; }
-
+.content-area {
+  padding: 1.5rem;
+  flex: 1;
+  overflow-y: auto;    /* THIS pane scrolls; sidebar/topbar stay put */
+  min-width: 0;        /* lets tables shrink instead of forcing width */
+}
 /* ---------- CENTERED CARD PAGES ---------- */
 .center-page {
   display: flex;

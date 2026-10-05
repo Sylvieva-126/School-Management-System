@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
@@ -10,6 +8,8 @@ import Login from './pages/Login';
 import Activate from './pages/Activate';
 import ChangePassword from './pages/ChangePassword';
 import Dashboard from './pages/admin/Dashboard';
+import Students from './pages/admin/Students';
+
 
 const Placeholder = ({ title }) => (
   <div className="card">
@@ -54,7 +54,7 @@ export default function App() {
               <Route path="subjects" element={<Placeholder title="Subjects" />} />
               <Route path="assignments" element={<Placeholder title="Teacher Assignments" />} />
               <Route path="teachers" element={<Placeholder title="Teachers" />} />
-              <Route path="students" element={<Placeholder title="Students" />} />
+               <Route path="students" element={<Students />} />
               <Route path="fees" element={<Placeholder title="Fees Management" />} />
               <Route path="timetable" element={<Placeholder title="Timetable" />} />
               <Route path="exams" element={<Placeholder title="Exams" />} />

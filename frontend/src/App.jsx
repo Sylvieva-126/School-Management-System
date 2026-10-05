@@ -12,6 +12,8 @@ import Students from './pages/admin/Students';
 import Teachers from './pages/admin/Teachers';
 import Fees from './pages/admin/Fees';
 import ReportCards from './pages/shared/ReportCards';
+import Exams from './pages/admin/Exams';
+
 
 
 
@@ -61,8 +63,8 @@ export default function App() {
                  <Route path="students" element={<Students />} />
               <Route path="fees" element={<Fees />} />
               <Route path="timetable" element={<Placeholder title="Timetable" />} />
-              <Route path="exams" element={<Placeholder title="Exams" />} />
-              <Route path="report-cards" element={<ReportCards />} />
+                <Route path="exams" element={<Exams />} />
+                <Route path="report-cards" element={<ReportCards />} />
               <Route path="broadcast" element={<Placeholder title="Broadcast" />} />
               <Route path="delivery-log" element={<Placeholder title="Delivery Log" />} />
               <Route path="manage-admins" element={<RoleRoute roles={['super_admin']}><Placeholder title="Manage Admins" /></RoleRoute>} />

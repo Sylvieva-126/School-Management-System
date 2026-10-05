@@ -9,6 +9,7 @@ import Activate from './pages/Activate';
 import ChangePassword from './pages/ChangePassword';
 import Dashboard from './pages/admin/Dashboard';
 import Students from './pages/admin/Students';
+import Teachers from './pages/admin/Teachers';
 
 
 const Placeholder = ({ title }) => (
@@ -53,8 +54,8 @@ export default function App() {
               <Route path="classes" element={<Placeholder title="Classes" />} />
               <Route path="subjects" element={<Placeholder title="Subjects" />} />
               <Route path="assignments" element={<Placeholder title="Teacher Assignments" />} />
-              <Route path="teachers" element={<Placeholder title="Teachers" />} />
-               <Route path="students" element={<Students />} />
+                <Route path="teachers" element={<Teachers />} />
+                 <Route path="students" element={<Students />} />
               <Route path="fees" element={<Placeholder title="Fees Management" />} />
               <Route path="timetable" element={<Placeholder title="Timetable" />} />
               <Route path="exams" element={<Placeholder title="Exams" />} />

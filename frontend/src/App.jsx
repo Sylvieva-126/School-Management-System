@@ -11,6 +11,8 @@ import Dashboard from './pages/admin/Dashboard';
 import Students from './pages/admin/Students';
 import Teachers from './pages/admin/Teachers';
 import Fees from './pages/admin/Fees';
+import ReportCards from './pages/shared/ReportCards';
+
 
 
 const Placeholder = ({ title }) => (
@@ -60,7 +62,7 @@ export default function App() {
               <Route path="fees" element={<Fees />} />
               <Route path="timetable" element={<Placeholder title="Timetable" />} />
               <Route path="exams" element={<Placeholder title="Exams" />} />
-              <Route path="report-cards" element={<Placeholder title="Report Cards" />} />
+              <Route path="report-cards" element={<ReportCards />} />
               <Route path="broadcast" element={<Placeholder title="Broadcast" />} />
               <Route path="delivery-log" element={<Placeholder title="Delivery Log" />} />
               <Route path="manage-admins" element={<RoleRoute roles={['super_admin']}><Placeholder title="Manage Admins" /></RoleRoute>} />
@@ -72,7 +74,7 @@ export default function App() {
               <Route index element={<Placeholder title="Teacher Home" />} />
               <Route path="my-classes" element={<Placeholder title="My Classes" />} />
               <Route path="attendance" element={<Placeholder title="Mark Attendance" />} />
-              <Route path="report-cards" element={<Placeholder title="Upload Report Cards" />} />
+             <Route path="report-cards" element={<ReportCards />} />
               <Route path="timetable" element={<Placeholder title="My Timetable" />} />
             </Route>
 

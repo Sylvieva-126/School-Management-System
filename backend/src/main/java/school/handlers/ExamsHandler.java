@@ -6,6 +6,7 @@ import school.auth.User;
 import school.config.Database;
 import school.http.ApiError;
 import school.http.Json;
+import school.http.QueryParser;
 import school.http.SecureHandler;
 import school.services.AuditLogger;
 
@@ -49,10 +50,67 @@ public class ExamsHandler extends SecureHandler {
 
     @Override
     protected void handleSecure(HttpExchange ex, User user) throws Exception {
-        requireRole(user, "super_admin", "admin");
+        String path = ex.getRequestURI().getPath();
         String method = ex.getRequestMethod();
 
-        if ("GET".equalsIgnoreCase(method)) {
+        // ===== GET /api/exams/my?classId=&subjectId=  (teacher-legal scoped read) =====
+        // Teachers cannot list ALL exams (admin-only). This endpoint lets the
+        // report-card upload page find exams for the teacher's OWN class/subject.
+        if (path.equals("/api/exams/my") && "GET".equalsIgnoreCase(method)) {
+            requireRole(user, "teacher", "super_admin", "admin");
+
+            Map<String, String> q = QueryParser.parse(ex.getRequestURI().getQuery());
+            Integer classId = null;
+            Integer subjectId = null;
+            try {
+                if (q.get("classId") != null && !q.get("classId").isEmpty()) {
+                    classId = Integer.parseInt(q.get("classId"));
+                }
+                if (q.get("subjectId") != null && !q.get("subjectId").isEmpty()) {
+                    subjectId = Integer.parseInt(q.get("subjectId"));
+                }
+            } catch (NumberFormatException e) {
+                throw new ApiError(400, "classId and subjectId must be numbers");
+            }
+            if (classId == null) throw new ApiError(400, "classId is required");
+
+            // Ownership: teachers may only query classes they are assigned to
+            if ("teacher".equals(user.role)) {
+                Map<String, Object> own;
+                if (subjectId != null) {
+                    own = Database.queryOne(
+                            "SELECT 1 FROM teacher_assignments WHERE teacher_id = ? AND class_id = ? AND subject_id = ?",
+                            user.id, classId, subjectId);
+                } else {
+                    own = Database.queryOne(
+                            "SELECT 1 FROM teacher_assignments WHERE teacher_id = ? AND class_id = ?",
+                            user.id, classId);
+                }
+                if (own == null) throw new ApiError(403, "This is not your class");
+            }
+
+            List<Map<String, Object>> exams;
+            if (subjectId != null) {
+                exams = Database.query(
+                        "SELECT e.id, e.name, e.max_score, e.class_id, e.subject_id, t.name AS term_name " +
+                                "FROM exams e JOIN terms t ON e.term_id = t.id " +
+                                "WHERE e.class_id = ? AND e.subject_id = ? ORDER BY e.id DESC",
+                        classId, subjectId);
+            } else {
+                exams = Database.query(
+                        "SELECT e.id, e.name, e.max_score, e.class_id, e.subject_id, t.name AS term_name " +
+                                "FROM exams e JOIN terms t ON e.term_id = t.id " +
+                                "WHERE e.class_id = ? ORDER BY e.id DESC",
+                        classId);
+            }
+            Json.send(ex, 200, exams);
+            return;
+        }
+
+        // ===== Everything below is ADMIN-ONLY (list all exams, create exams) =====
+        requireRole(user, "super_admin", "admin");
+
+        if ("/api/exams".equals(path) && "GET".equalsIgnoreCase(method)) {
             List<Map<String, Object>> exams = Database.query(
                     "SELECT e.*, c.name as class_name, s.name as subject_name, t.name as term_name " +
                             "FROM exams e JOIN classes c ON e.class_id = c.id " +
@@ -64,7 +122,7 @@ public class ExamsHandler extends SecureHandler {
             return;
         }
 
-        if ("POST".equalsIgnoreCase(method)) {
+        if ("/api/exams".equals(path) && "POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
             String name = (String) body.get("name");
 
@@ -107,6 +165,7 @@ public class ExamsHandler extends SecureHandler {
             Json.send(ex, 201, Map.of("message", "Exam created successfully"));
             return;
         }
-        throw new ApiError(405, "Method not allowed");
+
+        throw new ApiError(404, "Not found");
     }
 }

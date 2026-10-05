@@ -61,7 +61,6 @@
 
 /* ---------- BASE ---------- */
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 html, body {
   background-color: var(--bg);
   min-height: 100%;
@@ -89,6 +88,13 @@ a { color: var(--primary); text-decoration: none; }
 [data-theme="dark"] a { color: var(--accent); }
 a:hover { text-decoration: underline; }
 
+/* Selects must never force their container wider than the column */
+select {
+  width: 100%;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+form select { min-width: 0; }
 /* ---------- DARK SCROLLBARS ---------- */
 [data-theme="dark"] ::-webkit-scrollbar { width: 10px; height: 10px; }
 [data-theme="dark"] ::-webkit-scrollbar-track { background: var(--surface); }
@@ -212,10 +218,17 @@ tbody tr:hover td { background-color: var(--surface-2); }
 td { font-variant-numeric: tabular-nums; }
 
 
-/* Compact admin tables — fit narrow content areas without horizontal scroll */
+/* Compact admin tables — fit narrow content areas without horizontal scroll
 .compact-table th, .compact-table td { padding: 0.5rem 0.6rem; }
 .compact-table .cell-truncate {
   max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}*/
+
+.compact-table .cell-truncate {
+  max-width: 240px;   /* was 170px — full names show; still guards overflow */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -304,7 +317,7 @@ td { font-variant-numeric: tabular-nums; }
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 60px - 3rem);
+  min-height: 100%;    /* fills the scrollable content pane exactly */
   padding: 1.5rem;
 }
 

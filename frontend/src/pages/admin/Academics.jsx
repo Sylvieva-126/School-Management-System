@@ -142,7 +142,7 @@ export default function Academics() {
             </table>
           </div>
           <p className="text-muted" style={{ fontSize: '0.72rem', marginTop: '0.6rem', marginBottom: 0 }}>
-            Duplicates are rejected — one Mathematics, ever.
+            Duplicates are rejected — one Subject , ever.
           </p>
         </div>
       </div>

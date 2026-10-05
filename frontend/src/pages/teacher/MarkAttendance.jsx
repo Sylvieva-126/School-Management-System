@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FiCheck, FiX, FiClock } from 'react-icons/fi';
 import { apiFetch } from '../../api/client';
 
@@ -6,13 +6,39 @@ export default function MarkAttendance() {
   const [myClasses, setMyClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [classId, setClassId] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  // FIX: local date (en-CA = YYYY-MM-DD in the browser's timezone), not UTC
+  const [date, setDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [statuses, setStatuses] = useState({});   // studentId -> present|absent|late
+  const [alreadyMarked, setAlreadyMarked] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // Load students for a class, then MERGE any stored marks for class+date
+  const loadClass = async (cid, d) => {
+    setMsg(''); setErr('');
+    try {
+      const stu = await apiFetch(`/teacher/class/${cid}/students`);
+      setStudents(stu);
+      const def = {};
+      stu.forEach(s => { def[s.id] = 'present'; });
+      try {
+        const existing = await apiFetch(`/attendance?classId=${cid}&date=${d}`);
+        existing.forEach(r => {
+          const sid = Number(r.student_id);
+          if (def[sid] !== undefined) def[sid] = r.status;
+        });
+        setAlreadyMarked(existing.length > 0);
+      } catch {
+        setAlreadyMarked(false);   // read failed — fall back to defaults
+      }
+      setStatuses(def);
+    } catch (e) {
+      setErr(e.message);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -22,12 +48,7 @@ export default function MarkAttendance() {
         if (cls.length) {
           const cid = String(cls[0].class_id);
           setClassId(cid);
-          const stu = await apiFetch(`/teacher/class/${cid}/students`);
-          setStudents(stu);
-          // default everyone present — teacher unmarks as needed
-          const def = {};
-          stu.forEach(s => { def[s.id] = 'present'; });
-          setStatuses(def);
+          await loadClass(cid, date);
         }
       } catch (e) {
         setErr(e.message);
@@ -37,18 +58,16 @@ export default function MarkAttendance() {
     })();
   }, []);
 
+  // Reload stored marks when the date changes (skip the initial mount — already loaded above)
+  const firstDateRun = useRef(true);
+  useEffect(() => {
+    if (firstDateRun.current) { firstDateRun.current = false; return; }
+    if (classId) loadClass(classId, date);
+  }, [date]);
+
   const pickClass = async (cid) => {
     setClassId(cid);
-    setMsg(''); setErr('');
-    try {
-      const stu = await apiFetch(`/teacher/class/${cid}/students`);
-      setStudents(stu);
-      const def = {};
-      stu.forEach(s => { def[s.id] = 'present'; });
-      setStatuses(def);
-    } catch (e) {
-      setErr(e.message);
-    }
+    await loadClass(cid, date);
   };
 
   const setStatus = (id, status) => setStatuses(prev => ({ ...prev, [id]: status }));
@@ -65,6 +84,7 @@ export default function MarkAttendance() {
         body: JSON.stringify({ classId: Number(classId), date, records })
       });
       setMsg(data.message + ' — parents of absent students were notified.');
+      setAlreadyMarked(true);
     } catch (e2) {
       setErr(e2.message);   // closed term → "This term is closed." lands here
     } finally {
@@ -93,7 +113,7 @@ export default function MarkAttendance() {
       <div style={{ marginBottom: '1.25rem' }}>
         <h1 style={{ marginBottom: '0.15rem' }}>Mark Attendance</h1>
         <span className="text-muted" style={{ fontSize: '0.85rem' }}>
-          {marked > 0 ? `${marked} student${marked === 1 ? '' : 's'} not marked present` : 'Everyone defaults to present'}
+          {marked > 0 ? `${marked} student${marked === 1 ? '' : 's'} not marked present` : 'Everyone marked present'}
         </span>
       </div>
 
@@ -102,7 +122,7 @@ export default function MarkAttendance() {
 
       <div className="card" style={{ minWidth: 0 }}>
         <form onSubmit={submit}>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'center' }}>
             <select value={classId} onChange={e => pickClass(e.target.value)} required
                     style={{ flex: 1, minWidth: '180px' }}>
               <option value="" disabled>My classes…</option>
@@ -114,6 +134,11 @@ export default function MarkAttendance() {
             </select>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} required
                    style={{ width: 'auto', minWidth: '160px' }} />
+            {alreadyMarked && (
+              <span className="badge badge-warning" title="Resubmitting overwrites the stored marks">
+                Already marked for this date
+              </span>
+            )}
           </div>
 
           {loading ? (

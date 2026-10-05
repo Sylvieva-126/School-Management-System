@@ -29,7 +29,7 @@ export default function Layout() {
       links.push({ to: '/admin/dashboard', icon: <FiActivity />, label: 'Dashboard' });
       links.push({ to: '/admin/sessions', icon: <FiCalendar />, label: 'Sessions & Terms' });
       links.push({ to: '/admin/classes', icon: <FiUsers />, label: 'Classes' });
-      links.push({ to: '/admin/subjects', icon: <FiBookOpen />, label: 'Subjects' });
+//       links.push({ to: '/admin/subjects', icon: <FiBookOpen />, label: 'Subjects' });
       links.push({ to: '/admin/teachers', icon: <FiUsers />, label: 'Teachers' });
       links.push({ to: '/admin/students', icon: <FiUsers />, label: 'Students' });
       links.push({ to: '/admin/assignments', icon: <FiBookOpen />, label: 'Assignments' });

@@ -67,12 +67,14 @@ export default function TeacherHome() {
     }
   };
 
-  // FIX: backend returns dates as full ISO timestamps ("2026-10-04T00:00:00Z")
-  // — compare the first 10 chars against today's bare date, or it never matches.
-  const today = new Date().toISOString().slice(0, 10);
-  const todayMarked = attendance?.records?.[0] && String(attendance.records[0].date).slice(0, 10) === today
-    ? attendance.records[0].status
+  // FIX v2: backend serializes dates UTC-shifted (midnight local = 23:00 UTC prev day).
+  // Convert both sides to LOCAL dates before comparing.
+  const today = new Date().toLocaleDateString('en-CA');           // local YYYY-MM-DD
+  const lastDate = attendance?.records?.[0]
+    ? new Date(attendance.records[0].date).toLocaleDateString('en-CA')
     : null;
+  const todayMarked = lastDate === today ? attendance.records[0].status : null;
+
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const byDay = DAYS.map(d => ({ day: d, rows: timetable.filter(x => x.day_of_week === d) }));

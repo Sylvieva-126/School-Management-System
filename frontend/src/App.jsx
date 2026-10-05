@@ -64,7 +64,7 @@ export default function App() {
               <Route index element={<Navigate to="dashboard" replace />} />
                <Route path="dashboard" element={<Dashboard />} />
             <Route path="classes" element={<Academics />} />
-            <Route path="subjects" element={<Navigate to="/admin/classes" replace />} />   {/* merged into Academics */}
+{/*             <Route path="subjects" element={<Navigate to="/admin/classes" replace />} />    */}{/* merged into Academics */}
             <Route path="assignments" element={<Assignments />} />
             <Route path="timetable" element={<TimetablePage />} />
             <Route path="sessions" element={<SessionsTerms />} />

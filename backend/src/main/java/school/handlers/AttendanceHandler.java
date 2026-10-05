@@ -8,6 +8,7 @@ import school.auth.User;
 import school.config.Database;
 import school.http.ApiError;
 import school.http.Json;
+import school.http.QueryParser;
 import school.http.SecureHandler;
 import school.services.AuditLogger;
 import school.services.Notifier;
@@ -79,14 +80,46 @@ public class AttendanceHandler extends SecureHandler {
             return;
         }
 
+        // ===== GET /api/attendance?classId=&date=  (stored marks for a class-day — drives UI prefill) =====
+        if ("/api/attendance".equals(path) && "GET".equalsIgnoreCase(method)) {
+            Map<String, String> q = QueryParser.parse(ex.getRequestURI().getQuery());
+            String classIdStr = q.get("classId");
+            String dateStr = q.get("date");
+            if (classIdStr == null || classIdStr.isEmpty() || dateStr == null || dateStr.isEmpty()) {
+                throw new ApiError(400, "classId and date are required");
+            }
+            int classId;
+            try {
+                classId = Integer.parseInt(classIdStr);
+            } catch (NumberFormatException e) {
+                throw new ApiError(400, "classId must be a number");
+            }
+            try {
+                LocalDate.parse(dateStr);
+            } catch (DateTimeParseException e) {
+                throw new ApiError(400, "Invalid date format. Use YYYY-MM-DD");
+            }
+
+            // Teachers may only read their own classes
+            if ("teacher".equals(user.role)) {
+                Map<String, Object> assignment = Database.queryOne(
+                        "SELECT 1 FROM teacher_assignments WHERE teacher_id = ? AND class_id = ?",
+                        user.id, classId);
+                if (assignment == null) throw new ApiError(403, "This is not your class");
+            }
+
+            List<Map<String, Object>> records = Database.query(
+                    "SELECT student_id, status FROM attendance WHERE class_id = ? AND date = ?::date",
+                    classId, dateStr);
+            Json.send(ex, 200, records);
+            return;
+        }
+
         // ===== POST /api/attendance =====
         if ("/api/attendance".equals(path) && "POST".equalsIgnoreCase(method)) {
-            System.out.println("=== DEBUG 1: POST /api/attendance reached ===");
             Map<String, Object> body = Json.parseBody(ex);
             int classId = asInt(body.get("classId"));
             String dateStr = (String) body.get("date");
-
-            System.out.println("=== DEBUG 2: classId=" + classId + ", date=" + dateStr);
 
             if (dateStr == null || dateStr.trim().isEmpty()) {
                 throw new ApiError(400, "Date is required");
@@ -102,10 +135,6 @@ public class AttendanceHandler extends SecureHandler {
             List<Map<String, Object>> records = new ArrayList<>();
             Object rawRecords = body.get("records");
 
-            System.out.println("=== DEBUG 3: rawRecords type="
-                    + (rawRecords != null ? rawRecords.getClass().getSimpleName() : "NULL"));
-            System.out.println("=== DEBUG 3b: rawRecords content=" + rawRecords);
-
             if (rawRecords instanceof List) {
                 for (Object item : (List<?>) rawRecords) {
                     if (item instanceof Map) {
@@ -115,8 +144,6 @@ public class AttendanceHandler extends SecureHandler {
                     }
                 }
             }
-
-            System.out.println("=== DEBUG 4: parsed records count=" + records.size());
 
             if (records.isEmpty()) {
                 throw new ApiError(400, "records array is required and must not be empty");
@@ -137,8 +164,6 @@ public class AttendanceHandler extends SecureHandler {
                 throw new ApiError(400, "This term is closed.");
             }
 
-            System.out.println("=== DEBUG 5: About to enter transaction with " + records.size() + " records");
-
             try {
                 Database.transaction(con -> {
                     for (Map<String, Object> record : records) {
@@ -146,8 +171,6 @@ public class AttendanceHandler extends SecureHandler {
                         String status = record.get("status") != null
                                 ? record.get("status").toString().trim().toLowerCase()
                                 : "";
-
-                        System.out.println("=== DEBUG 6: Processing student=" + studentId + ", status=" + status);
 
                         if (!"present".equals(status) && !"absent".equals(status) && !"late".equals(status)) {
                             throw new ApiError(400, "Status must be 'present' or 'absent' or 'late'. Got: " + status);
@@ -167,16 +190,12 @@ public class AttendanceHandler extends SecureHandler {
                         );
 
                         if ("absent".equals(status)) {
-                            System.out.println("=== DEBUG 7: ABSENCE TRIGGERED for student=" + studentId);
-                            System.out.println("=== DEBUG 8: Looking up parents for student=" + studentId);
                             String studentName = studentRow.get("full_name") != null
                                     ? studentRow.get("full_name").toString() : "Unknown";
                             List<Map<String, Object>> parents = Database.query(con,
                                     "SELECT parent_user_id FROM parent_links WHERE student_id = ?", studentId);
-                            System.out.println("=== DEBUG 9: Parents found=" + parents.size());
                             for (Map<String, Object> p : parents) {
                                 int parentId = ((Number) p.get("parent_user_id")).intValue();
-                                System.out.println("=== DEBUG 10: Notifying parent=" + parentId);
                                 Notifier.notify(parentId, "ABSENCE",
                                         Map.of("student", studentName, "date", dateStr));
                             }
@@ -184,11 +203,9 @@ public class AttendanceHandler extends SecureHandler {
                     }
                 });
             } catch (ApiError e) {
-                System.out.println("=== DEBUG CAUGHT ApiError: " + e.getMessage());
                 throw e;
             } catch (RuntimeException e) {
                 if (e.getCause() instanceof ApiError) {
-                    System.out.println("=== DEBUG CAUGHT wrapped ApiError: " + e.getCause().getMessage());
                     throw (ApiError) e.getCause();
                 }
                 if (e.getCause() instanceof java.sql.SQLException) {
@@ -197,11 +214,9 @@ public class AttendanceHandler extends SecureHandler {
                         throw new ApiError(400, "One of the students does not exist");
                     }
                 }
-                System.out.println("=== DEBUG CAUGHT RuntimeException: " + e.getMessage());
                 throw e;
             }
 
-            System.out.println("=== DEBUG 11: Transaction completed successfully");
             AuditLogger.success(user, "ATTENDANCE_MARKED", "classes", classId, null,
                     Map.of("date", dateStr, "records_count", records.size()));
             Json.send(ex, 200, Map.of("message", "Attendance marked successfully"));

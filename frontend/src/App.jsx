@@ -61,28 +61,21 @@ export default function App() {
                      }>
                        <Route index element={<ChangePassword />} />
                      </Route>
-            {/* ADMIN WING */}
-            <Route path="/admin" element={<RoleRoute roles={['admin', 'super_admin']}><Layout /></RoleRoute>}>
-              <Route index element={<Navigate to="dashboard" replace />} />
-               <Route path="dashboard" element={<Dashboard />} />
-            <Route path="classes" element={<Academics />} />
-{/*             <Route path="subjects" element={<Navigate to="/admin/classes" replace />} />    */}{/* merged into Academics */}
-            <Route path="assignments" element={<Assignments />} />
-            <Route path="timetable" element={<TimetablePage />} />
-            <Route path="sessions" element={<SessionsTerms />} />
-              <Route path="assignments" element={<Placeholder title="Teacher Assignments" />} />
-                <Route path="teachers" element={<Teachers />} />
-                 <Route path="students" element={<Students />} />
-              <Route path="fees" element={<Fees />} />
-              <Route path="timetable" element={<Placeholder title="Timetable" />} />
-                <Route path="exams" element={<Exams />} />
-                <Route path="report-cards" element={<ReportCards />} />
-{/*               <Route path="broadcast" element={<Placeholder title="Broadcast" />} /> */}
-{/*               <Route path="delivery-log" element={<Placeholder title="Delivery Log" />} /> */}
-{/*               <Route path="manage-admins" element={<RoleRoute roles={['super_admin']}><Placeholder title="Manage Admins" /></RoleRoute>} /> */}
-              <Route path="activity-log" element={<RoleRoute roles={['super_admin']}><ActivityLog /></RoleRoute>} />
-
-            </Route>
+                    {/* ADMIN WING */}
+                    <Route path="/admin" element={<RoleRoute roles={['admin', 'super_admin']}><Layout /></RoleRoute>}>
+                      <Route index element={<Navigate to="dashboard" replace />} />
+                      <Route path="dashboard" element={<Dashboard />} />
+                      <Route path="sessions" element={<SessionsTerms />} />
+                      <Route path="classes" element={<Academics />} />
+                      <Route path="assignments" element={<Assignments />} />
+                      <Route path="timetable" element={<TimetablePage />} />
+                      <Route path="teachers" element={<Teachers />} />
+                      <Route path="students" element={<Students />} />
+                      <Route path="fees" element={<Fees />} />
+                      <Route path="exams" element={<Exams />} />
+                      <Route path="report-cards" element={<ReportCards />} />
+                      <Route path="activity-log" element={<RoleRoute roles={['super_admin']}><ActivityLog /></RoleRoute>} />
+                    </Route>
 
                      {/* TEACHER WING */}
                      <Route path="/teacher" element={<RoleRoute roles={['teacher']}><Layout /></RoleRoute>}>

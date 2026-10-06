@@ -43,10 +43,10 @@ export default function MarkAttendance() {
   useEffect(() => {
     (async () => {
       try {
-        const cls = await apiFetch('/teacher/my-classes');
-        setMyClasses(cls);
-        if (cls.length) {
-          const cid = String(cls[0].class_id);
+         const cls = await apiFetch('/teacher/my-teacher-classes');
+         setMyClasses(cls);
+         if (cls.length) {
+           const cid = String(cls[0].id);
           setClassId(cid);
           await loadClass(cid, date);
         }
@@ -126,11 +126,9 @@ export default function MarkAttendance() {
             <select value={classId} onChange={e => pickClass(e.target.value)} required
                     style={{ flex: 1, minWidth: '180px' }}>
               <option value="" disabled>My classes…</option>
-              {myClasses.map(c => (
-                <option key={`${c.class_id}-${c.subject_id}`} value={String(c.class_id)}>
-                  {c.class_name} · {c.subject_name}
-                </option>
-              ))}
+                          {myClasses.map(c => (
+                            <option key={c.id} value={String(c.id)}>{c.name}</option>
+                          ))}
             </select>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} required
                    style={{ width: 'auto', minWidth: '160px' }} />
@@ -145,7 +143,7 @@ export default function MarkAttendance() {
             <div className="skeleton" style={{ height: '4rem' }} />
           ) : students.length === 0 ? (
             <div className="text-muted" style={{ padding: '1rem 0' }}>
-              No students in this class{classId ? ' — pick another class' : ''}.
+                You are not the class teacher of any class — only class teachers mark attendance.{classId ? ' — pick another class' : ''}.
             </div>
           ) : (
             <div className="table-container">

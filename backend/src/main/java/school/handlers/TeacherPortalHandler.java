@@ -70,7 +70,12 @@ public class TeacherPortalHandler extends SecureHandler {
             Json.send(ex, 200, students);
             return;
         }
-
+        if ("/api/teacher/my-teacher-classes".equals(path)) {
+            List<Map<String, Object>> classes = Database.query(
+                    "SELECT id, name FROM classes WHERE class_teacher_id = ? ORDER BY name ASC", user.id);
+            Json.send(ex, 200, classes);
+            return;
+        }
         throw new ApiError(404, "Not found");
     }
 }

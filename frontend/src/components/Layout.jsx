@@ -42,7 +42,7 @@ export default function Layout() {
       // links.push({ to: '/admin/delivery-log', icon: <FiClock />, label: 'Delivery Log' });
       if (r === 'super_admin') {
         // links.push({ to: '/admin/manage-admins', icon: <FiShield />, label: 'Manage Admins' });
-        // links.push({ to: '/admin/activity-log', icon: <FiActivity />, label: 'Activity Log' });
+        links.push({ to: '/admin/activity-log', icon: <FiActivity />, label: 'Activity Log' });
       }
        } else if (r === 'teacher') {
          links.push({ to: '/teacher', icon: <FiActivity />, label: 'Home', end: true });

@@ -163,6 +163,11 @@ public class Notifier {
         for (Map.Entry<String, String> entry : data.entrySet()) {
             body = body.replace("{" + entry.getKey() + "}", entry.getValue());
         }
+        // Strip a leftover {link} placeholder when the event carries no link
+        if (link == null) {
+            body = body.replace("Activate your account here: {link}", "").replace("{link}", "");
+            body = body.replaceAll("\\s{2,}", " ").trim();
+        }
 
         // DEDUP: only for per-student events (ABSENCE etc.) — same user + event + student, per day.
         if (!studentName.isEmpty()) {

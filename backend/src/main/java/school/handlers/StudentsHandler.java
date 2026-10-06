@@ -124,6 +124,7 @@ public class StudentsHandler extends SecureHandler {
             final String[] newParentToken = {null};
             final int[] newStudentUserId = {-1};
             final String[] finalAdmNoOut = {null};
+            final int[] notifyParentId = {-1};
 
             try {
                 Database.transaction(con -> {
@@ -162,6 +163,7 @@ public class StudentsHandler extends SecureHandler {
                             throw new ApiError(400, "This phone number is already registered to a non-parent account");
                         }
                         parentId = ((Number) existingUser.get("id")).intValue();
+                        notifyParentId[0] = parentId;
 
                         // RESEND activation link if this parent has never activated
                         Map<String, Object> parentUser = Database.queryOne(con,
@@ -178,6 +180,7 @@ public class StudentsHandler extends SecureHandler {
                                     "INSERT INTO users (full_name, phone, role, active) VALUES (?, ?, 'parent', TRUE) RETURNING id",
                                     parentName, parentPhone
                             ).get("id")).intValue();
+                            notifyParentId[0] = parentId;
                         } catch (RuntimeException e) {
                             if (e instanceof ApiError) throw (ApiError) e;
                             if (e.getCause() instanceof ApiError) throw (ApiError) e.getCause();
@@ -231,10 +234,17 @@ public class StudentsHandler extends SecureHandler {
             Database.update("INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", studentToken, newStudentUserId[0]);
             String studentLink = Env.get("APP_URL") + "/activate?token=" + studentToken;
 
-            if (newParentId[0] != -1) {
-                String parentLink = Env.get("APP_URL") + "/activate?token=" + newParentToken[0];
-                Notifier.notify(newParentId[0], "STUDENT_ADMITTED",
-                        Map.of("student", fullName, "admissionNo", finalAdmNoOut[0], "link", parentLink, "name", parentName));
+            if (notifyParentId[0] != -1) {
+                if (newParentId[0] != -1) {
+                    // New / never-activated parent — link included
+                    String parentLink = Env.get("APP_URL") + "/activate?token=" + newParentToken[0];
+                    Notifier.notify(notifyParentId[0], "STUDENT_ADMITTED",
+                            Map.of("student", fullName, "admissionNo", finalAdmNoOut[0], "link", parentLink, "name", parentName));
+                } else {
+                    // Already-activated parent (sibling) — admission number only
+                    Notifier.notify(notifyParentId[0], "STUDENT_ADMITTED",
+                            Map.of("student", fullName, "admissionNo", finalAdmNoOut[0], "name", parentName));
+                }
             }
             Map<String, Object> resp = new LinkedHashMap<>();
             resp.put("message", "Student admitted successfully");

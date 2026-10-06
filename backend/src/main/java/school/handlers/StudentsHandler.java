@@ -233,9 +233,9 @@ public class StudentsHandler extends SecureHandler {
 
             if (newParentId[0] != -1) {
                 String parentLink = Env.get("APP_URL") + "/activate?token=" + newParentToken[0];
-                Notifier.notify(newParentId[0], "ACCOUNT_CREATED", Map.of("link", parentLink, "name", parentName));
+                Notifier.notify(newParentId[0], "STUDENT_ADMITTED",
+                        Map.of("student", fullName, "admissionNo", finalAdmNoOut[0], "link", parentLink, "name", parentName));
             }
-
             Map<String, Object> resp = new LinkedHashMap<>();
             resp.put("message", "Student admitted successfully");
             resp.put("admissionNo", finalAdmNoOut[0]);

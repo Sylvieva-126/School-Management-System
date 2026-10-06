@@ -21,6 +21,8 @@ import StudentPortal from './pages/student/StudentPortal';
 import ParentPortal from './pages/parent/ParentPortal';
 import TeacherHome from './pages/teacher/TeacherHome';
 import MarkAttendance from './pages/teacher/MarkAttendance';
+import ActivityLog from './pages/admin/ActivityLog';
+
 
 
 
@@ -75,10 +77,11 @@ export default function App() {
               <Route path="timetable" element={<Placeholder title="Timetable" />} />
                 <Route path="exams" element={<Exams />} />
                 <Route path="report-cards" element={<ReportCards />} />
-              <Route path="broadcast" element={<Placeholder title="Broadcast" />} />
-              <Route path="delivery-log" element={<Placeholder title="Delivery Log" />} />
-              <Route path="manage-admins" element={<RoleRoute roles={['super_admin']}><Placeholder title="Manage Admins" /></RoleRoute>} />
-              <Route path="activity-log" element={<RoleRoute roles={['super_admin']}><Placeholder title="Activity Log" /></RoleRoute>} />
+{/*               <Route path="broadcast" element={<Placeholder title="Broadcast" />} /> */}
+{/*               <Route path="delivery-log" element={<Placeholder title="Delivery Log" />} /> */}
+{/*               <Route path="manage-admins" element={<RoleRoute roles={['super_admin']}><Placeholder title="Manage Admins" /></RoleRoute>} /> */}
+              <Route path="activity-log" element={<RoleRoute roles={['super_admin']}><ActivityLog /></RoleRoute>} />
+
             </Route>
 
                      {/* TEACHER WING */}

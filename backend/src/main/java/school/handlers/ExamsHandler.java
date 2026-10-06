@@ -144,6 +144,14 @@ public class ExamsHandler extends SecureHandler {
                 throw new ApiError(400, "This term is closed.");
             }
 
+            // ===== DUPLICATE GUARD — BEFORE the INSERT =====
+            Map<String, Object> dup = Database.queryOne(
+                    "SELECT id FROM exams WHERE LOWER(name) = LOWER(?) AND class_id = ? AND subject_id = ? AND term_id = ?",
+                    name.trim(), classId, subjectId, termId);
+            if (dup != null) {
+                throw new ApiError(409, "An exam with this name already exists for this class, subject, and term");
+            }
+
             try {
                 long id = Database.insertReturningId(
                         "INSERT INTO exams (name, term_id, class_id, subject_id, max_score, created_by) VALUES (?, ?, ?, ?, ?, ?)",

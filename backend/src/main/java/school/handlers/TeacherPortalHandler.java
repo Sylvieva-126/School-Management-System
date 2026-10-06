@@ -60,8 +60,11 @@ public class TeacherPortalHandler extends SecureHandler {
         if (path.startsWith("/api/teacher/class/") && path.endsWith("/students")) {
             int classId = pathInt(path.replace("/api/teacher/class/", "").replace("/students", ""));
 
-            Map<String, Object> assignment = Database.queryOne("SELECT 1 FROM teacher_assignments WHERE teacher_id = ? AND class_id = ?", user.id, classId);
-            if (assignment == null) throw new ApiError(403, "This is not your class");
+            Map<String, Object> assignment = Database.queryOne(
+                    "SELECT 1 FROM teacher_assignments WHERE teacher_id = ? AND class_id = ?", user.id, classId);
+            Map<String, Object> ownClass = Database.queryOne(
+                    "SELECT 1 FROM classes WHERE id = ? AND class_teacher_id = ?", classId, user.id);
+            if (assignment == null && ownClass == null) throw new ApiError(403, "This is not your class");
 
             List<Map<String, Object>> students = Database.query(
                     "SELECT id, full_name, admission_no FROM students WHERE class_id = ? AND graduated = FALSE ORDER BY full_name ASC",

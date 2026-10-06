@@ -1,8 +1,48 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiRefreshCw } from 'react-icons/fi';
 import { apiFetch } from '../../api/client';
 import { formatDateTime } from '../../utils/format';
+
+// "users" -> "User", "report_card_uploads" -> "Report card", etc.
+const TARGET_NAMES = {
+  users: 'User',
+  students: 'Student',
+  classes: 'Class',
+  invoices: 'Invoice',
+  exams: 'Exam',
+  terms: 'Term',
+  academic_sessions: 'Session',
+  subjects: 'Subject',
+  scores: 'Score',
+  results: 'Result',
+  timetable: 'Timetable entry',
+  report_card_uploads: 'Report card',
+  teacher_attendance: 'Teacher attendance',
+};
+
+function prettyTarget(type, id) {
+  if (!type && !id) return '—';
+  const name = TARGET_NAMES[type] || (type ? type.replace(/_/g, ' ') : '');
+  return id ? `${name} #${id}` : name || '—';
+}
+
+// new_value/old_value arrive as {"type":"jsonb","value":"{\"date\":...}"} —
+// unwrap and parse into clean key: value pairs
+function parseDetails(entry) {
+  const raw = entry?.new_value?.value || entry?.old_value?.value || null;
+  if (!raw) return null;
+  try {
+    const obj = JSON.parse(raw);
+    if (obj && typeof obj === 'object') {
+      return Object.entries(obj)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('  ·  ');
+    }
+    return String(obj);
+  } catch {
+    return String(raw); // wasn't JSON — show as-is
+  }
+}
 
 export default function ActivityLog() {
   const [items, setItems] = useState([]);
@@ -71,22 +111,25 @@ export default function ActivityLog() {
             <tbody>
               {loading && items.length === 0 && <tr><td colSpan="7"><div className="skeleton" style={{ height: '3rem' }} /></td></tr>}
               {!loading && items.length === 0 && <tr><td colSpan="7" className="text-muted">No entries</td></tr>}
-              {items.map(a => (
-                <tr key={a.id}>
-                  <td style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{formatDateTime(a.created_at)}</td>
-                  <td>{a.actor_id ?? <span className="text-muted">—</span>}</td>
-                  <td>{a.actor_role || <span className="text-muted">—</span>}</td>
-                  <td style={{ fontWeight: 600 }}>
-                    {a.action}
-                    {a.status === 'blocked' && <span className="badge badge-danger" style={{ marginLeft: '0.4rem' }}>blocked</span>}
-                  </td>
-                  <td className="text-muted">{a.target_type || '—'}{a.target_id ? ` #${a.target_id}` : ''}</td>
-                  <td className="cell-truncate" title={a.new_value?.value || a.old_value?.value || ''} style={{ maxWidth: '220px', fontSize: '0.78rem' }}>
-                    {a.new_value?.value || a.old_value?.value || '—'}
-                  </td>
-                  <td className="text-muted" style={{ fontSize: '0.75rem' }}>{a.ip_address}</td>
-                </tr>
-              ))}
+              {items.map(a => {
+                const details = parseDetails(a);
+                return (
+                  <tr key={a.id}>
+                    <td style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{formatDateTime(a.created_at)}</td>
+                    <td>{a.actor_id ?? <span className="text-muted">system</span>}</td>
+                    <td>{a.actor_role || <span className="text-muted">—</span>}</td>
+                    <td style={{ fontWeight: 600 }}>
+                      {a.action}
+                      {a.status === 'blocked' && <span className="badge badge-danger" style={{ marginLeft: '0.4rem' }}>blocked</span>}
+                    </td>
+                    <td>{prettyTarget(a.target_type, a.target_id)}</td>
+                    <td className="cell-truncate" title={details || ''} style={{ maxWidth: '260px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      {details || '—'}
+                    </td>
+                    <td className="text-muted" style={{ fontSize: '0.75rem' }}>{a.ip_address}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

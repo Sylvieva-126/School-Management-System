@@ -13,9 +13,7 @@ import java.util.Map;
 public class NotificationsHandler extends SecureHandler {
     @Override
     protected void handleSecure(HttpExchange ex, User user) throws Exception {
-        // Null-session guard: requireRole throws 401 when user is null.
-        // (No roles listed = any authenticated user passes.)
-        requireRole(user);
+        if (user == null) throw new ApiError(401, "Please log in");
 
         String path = ex.getRequestURI().getPath();
         String method = ex.getRequestMethod();

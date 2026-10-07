@@ -2,8 +2,8 @@
 // BrowserRouter key={sessionKey}: login/logout bumps sessionKey ->
 // the entire router remounts -> no page state leaks between users. (her spec)
 //
-// NOTE: pages not built yet render <Soon /> placeholders. As each real
-// page lands (Tier 1/2), its import replaces the placeholder — one line.
+// Pages not built yet render <Soon /> placeholders. As each real page
+// lands, its import replaces the placeholder — one line.
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import Layout from './components/Layout';
@@ -11,6 +11,9 @@ import RoleRoute from './routes/RoleRoute';
 import Login from './pages/Login';
 import Activate from './pages/Activate';
 import ChangePassword from './pages/ChangePassword';
+import Dashboard from './pages/admin/Dashboard';
+import Students from './pages/admin/Students';
+import Teachers from './pages/admin/Teachers';
 
 // Temporary stand-in for pages we haven't generated yet.
 function Soon({ title }) {
@@ -51,10 +54,10 @@ export default function App() {
           <Route path="/change-password" element={<RoleRoute><ChangePassword /></RoleRoute>} />
 
           {/* Admin wing */}
-          <Route path="/admin/dashboard" element={<RoleRoute roles={['admin', 'super_admin']}><Soon title="Dashboard" /></RoleRoute>} />
+          <Route path="/admin/dashboard" element={<RoleRoute roles={['admin', 'super_admin']}><Dashboard /></RoleRoute>} />
           <Route path="/admin/sessions" element={<RoleRoute roles={['admin', 'super_admin']}><Soon title="Sessions & Terms" /></RoleRoute>} />
-          <Route path="/admin/students" element={<RoleRoute roles={['admin', 'super_admin']}><Soon title="Students" /></RoleRoute>} />
-          <Route path="/admin/teachers" element={<RoleRoute roles={['admin', 'super_admin']}><Soon title="Teachers" /></RoleRoute>} />
+          <Route path="/admin/students" element={<RoleRoute roles={['admin', 'super_admin']}><Students /></RoleRoute>} />
+          <Route path="/admin/teachers" element={<RoleRoute roles={['admin', 'super_admin']}><Teachers /></RoleRoute>} />
           <Route path="/admin/fees" element={<RoleRoute roles={['admin', 'super_admin']}><Soon title="Fees" /></RoleRoute>} />
           <Route path="/admin/report-cards" element={<RoleRoute roles={['admin', 'super_admin']}><Soon title="Report Cards" /></RoleRoute>} />
           <Route path="/admin/exams" element={<RoleRoute roles={['admin', 'super_admin']}><Soon title="Exams" /></RoleRoute>} />

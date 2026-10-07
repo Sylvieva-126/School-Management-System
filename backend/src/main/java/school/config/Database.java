@@ -16,17 +16,19 @@ public class Database {
 
     static {
         HikariConfig config = new HikariConfig();
-        config.setDriverClassName("org.postgresql.Driver"); // DEVIATION NOTICE: Preserved
+        config.setDriverClassName("org.postgresql.Driver");
         config.setJdbcUrl(Env.get("DB_URL"));
         config.setUsername(Env.get("DB_USER"));
         config.setPassword(Env.get("DB_PASS"));
         config.setMaximumPoolSize(10);
         ds = new HikariDataSource(config);
     }
+//auth postgres
 
     public interface SqlWork {
         void run(Connection con) throws Exception;
     }
+    //accept lamda interface
 
     public static Connection getConnection() throws SQLException {
         return ds.getConnection();
@@ -39,12 +41,13 @@ public class Database {
             throw new RuntimeException(e);
         }
     }
-
+//turns sql exceptions into runtime exceptions
     public static List<Map<String, Object>> query(Connection con, String sql, Object... params) throws SQLException {
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             for (int i = 0; i < params.length; i++) {
                 ps.setObject(i + 1, params[i]);
             }
+ //ps statemnt makes sure param are returned to db safely
             try (ResultSet rs = ps.executeQuery()) {
                 List<Map<String, Object>> list = new ArrayList<>();
                 ResultSetMetaData md = rs.getMetaData();
@@ -66,7 +69,7 @@ public class Database {
             }
         }
     }
-
+//converts jdbc TS
     public static Map<String, Object> queryOne(String sql, Object... params) {
         try (Connection con = getConnection()) {
             return queryOne(con, sql, params);
@@ -79,7 +82,7 @@ public class Database {
         List<Map<String, Object>> results = query(con, sql, params);
         return results.isEmpty() ? null : results.get(0);
     }
-
+//fetches and returns null if not foud my err 404
     public static int update(String sql, Object... params) {
         try (Connection con = getConnection()) {
             return update(con, sql, params);
@@ -96,13 +99,14 @@ public class Database {
             return ps.executeUpdate();
         }
     }
-
+//returns affected row(update)
     public static long insertReturningId(String sql, Object... params) {
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             for (int i = 0; i < params.length; i++) {
                 ps.setObject(i + 1, params[i]);
             }
+//making new row gen id availabe
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
@@ -114,15 +118,18 @@ public class Database {
             throw new RuntimeException(e);
         }
     }
+//fetch gen id
 
     public static void transaction(SqlWork work) {
         try (Connection con = getConnection()) {
             con.setAutoCommit(false);
+//turns off quto commit
             try {
                 work.run(con);
                 con.commit();
             } catch (Exception e) {
                 con.rollback();
+//execute all eif successfull rollback if not
                 if (e instanceof ApiError) {
                     throw (ApiError) e;
                 }
@@ -137,4 +144,5 @@ public class Database {
             throw new RuntimeException(e);
         }
     }
+//makes sure err are returned api format
 }

@@ -100,7 +100,7 @@ public class ClassesHandler extends SecureHandler {
             return;
         }
 
-        // ===== PATCH /api/classes/{id}/teacher  (appoint / change / unassign) =====
+        // PATCH /api/classes/{id}/teacher  (appoint / change / unassign)
         if (path.matches("/api/classes/\\d+/teacher") && "PATCH".equalsIgnoreCase(method)) {
             int classId = pathInt(path.split("/")[3]);
             Map<String, Object> body = Json.parseBody(ex);

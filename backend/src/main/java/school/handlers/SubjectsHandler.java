@@ -31,7 +31,7 @@ public class SubjectsHandler extends SecureHandler {
                 throw new ApiError(400, "Subject name is required");
             }
 
-            // FIX: reject duplicate subject names (case-insensitive)
+            //  reject duplicate subject names (case-insensitive)
             if (Database.queryOne("SELECT id FROM subjects WHERE LOWER(name) = LOWER(?)", name.trim()) != null) {
                 throw new ApiError(409, "Subject already exists");
             }

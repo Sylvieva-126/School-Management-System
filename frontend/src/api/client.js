@@ -1,7 +1,4 @@
-// Token is SNAPSHOTTED per tab: each tab keeps the session it was loaded
-// (or logged in) with, even if another tab in the same browser logs in as
-// a different user. Session lives in sessionStorage — survives refresh,
-// cleared when the tab closes, so a new tab always starts at Login.
+// Token is snapshotted per tab: each tab keeps the session it was loaded
 let currentToken = sessionStorage.getItem('token');
 
 export function setCurrentToken(token) {
@@ -12,7 +9,7 @@ export function setCurrentToken(token) {
     sessionStorage.removeItem('token');
   }
 }
-
+//module lets  token be saved in session (lets for diff session)
 function authHeaders() {
   return currentToken ? { Authorization: `Bearer ${currentToken}` } : {};
 }
@@ -20,7 +17,7 @@ function authHeaders() {
 async function handle(res) {
   if (res.status === 204) return null;
   let data = null;
-  try { data = await res.json(); } catch { /* non-JSON */ }
+  try { data = await res.json(); } catch
   if (!res.ok) {
     if (res.status === 401) {
       sessionStorage.removeItem('user');
@@ -39,9 +36,7 @@ export async function apiFetch(endpoint, options = {}) {
 
   const response = await fetch(`/api${endpoint}`, { ...options, headers });
 
-  // 401: only kill the session if this tab HAD one and we're not on a public page.
-  // A wrong password at login is ALSO a 401 — it must show "Invalid credentials",
-  // not "Session expired" + reload.
+  // 401: only kill the session if this tab had one and we're not on a public page. a wrong password at login is a 401
   if (response.status === 401) {
     const hadSession = !!(currentToken || sessionStorage.getItem('user'));
     const path = window.location.pathname;
@@ -53,7 +48,7 @@ export async function apiFetch(endpoint, options = {}) {
       window.location.href = '/login';
       throw new Error('Session expired. Please log in again.');
     }
-    // else: fall through — caller displays the backend message
+    // else: fall through , caller displays the backend message
   }
 
   if (response.status === 204) return null;
@@ -70,8 +65,7 @@ export async function apiFetch(endpoint, options = {}) {
   return data;
 }
 
-// Multipart uploads (report cards): must NOT set Content-Type —
-// the browser generates the boundary.
+// multipart uploads (report cards):
 export async function apiUpload(endpoint, formData) {
   const res = await fetch(`/api${endpoint}`, {
     method: 'POST',

@@ -96,7 +96,7 @@ public class TeachersHandler extends SecureHandler {
             return;
         }
 
-        // NEW: remove a teacher (deactivates login, kills sessions)
+        // remove a teacher (deactivates login, kills sessions)
         if (path.matches("/api/teachers/\\d+/deactivate") && "PATCH".equalsIgnoreCase(method)) {
             int teacherId = pathInt(path.split("/")[3]);
             Map<String, Object> t = Database.queryOne(

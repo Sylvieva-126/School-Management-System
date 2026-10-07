@@ -169,7 +169,7 @@ public class Notifier {
             body = body.replaceAll("\\s{2,}", " ").trim();
         }
 
-        // DEDUP: only for per-student events (ABSENCE etc.) — same user + event + student, per day.
+        // DEDUP: only for per-student events (ABSENCE etc.) ,same user + event + student, per day.
         if (!studentName.isEmpty()) {
             String searchBody = "%" + studentName + "%";
             Map<String, Object> existing = Database.queryOne(

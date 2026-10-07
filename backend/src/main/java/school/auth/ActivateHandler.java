@@ -23,7 +23,7 @@ public class ActivateHandler extends SecureHandler {
             throw new ApiError(400, "Token and password are required");
         }
 
-        // FULL complexity policy: 8+ chars, upper, lower, number, special char
+        //  complexity policy: 8+ chars, upper, lower, number, special char
         PasswordPolicy.validate(password);
 
         String sql = "SELECT user_id FROM activation_tokens WHERE token = ? AND used = FALSE AND expires_at > now()";

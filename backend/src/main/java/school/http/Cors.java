@@ -11,3 +11,4 @@ public class Cors {
         ex.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     }
 }
+//

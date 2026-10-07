@@ -84,3 +84,4 @@ public class Main {
         System.out.println("School Management System Backend started on port " + port);
     }
 }
+//create routes

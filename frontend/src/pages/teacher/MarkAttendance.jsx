@@ -32,7 +32,7 @@ export default function MarkAttendance() {
         });
         setAlreadyMarked(existing.length > 0);
       } catch {
-        setAlreadyMarked(false);   // read failed — fall back to defaults
+        setAlreadyMarked(false);   // read failed —,fall back to defaults
       }
       setStatuses(def);
     } catch (e) {
@@ -57,8 +57,8 @@ export default function MarkAttendance() {
       }
     })();
   }, []);
+ // Reload stored marks when the date changes
 
-  // Reload stored marks when the date changes (skip the initial mount — already loaded above)
   const firstDateRun = useRef(true);
   useEffect(() => {
     if (firstDateRun.current) { firstDateRun.current = false; return; }

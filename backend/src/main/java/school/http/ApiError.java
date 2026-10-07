@@ -8,3 +8,4 @@ public class ApiError extends RuntimeException {
         this.status = status;
     }
 }
+//translates err to human readable statuses

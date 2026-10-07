@@ -34,7 +34,7 @@ public class ParentPortalHandler extends SecureHandler {
                     user.id
             );
 
-            // FIX: LinkedHashMap allows nulls (Map.of crashes when class/teacher is unassigned)
+            //  LinkedHashMap allows nulls (Map.of crashes when class/teacher is unassigned)
             List<Map<String, Object>> result = new ArrayList<>();
             for (Map<String, Object> child : children) {
                 int studentId = ((Number) child.get("id")).intValue();

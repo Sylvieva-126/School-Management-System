@@ -7,8 +7,8 @@ public class PasswordPolicy {
 
     /**
      * Enforces: min 8 chars, at least one uppercase, one lowercase,
-     * one digit, and one special character. Throws ApiError(400) if violated.
-     * Used by: account activation, password reset (forgot password), change password.
+      one digit, and one special character. Throws ApiError(400) if violated.
+     *Used by: account activation, password reset (forgot password), change password.
      */
     public static void validate(String password) {
         if (password == null || password.length() < 8) {

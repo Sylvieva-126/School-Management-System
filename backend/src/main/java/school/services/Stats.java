@@ -42,3 +42,4 @@ public class Stats {
         return Math.round((100.0 * presentDays / totalDays) * 10.0) / 10.0;
     }
 }
+//attendance tsts for teacher and student

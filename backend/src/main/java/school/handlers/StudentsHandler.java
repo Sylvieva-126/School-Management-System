@@ -48,7 +48,7 @@ public class StudentsHandler extends SecureHandler {
         String path = ex.getRequestURI().getPath();
         String method = ex.getRequestMethod();
 
-        // ===== GET /api/students (search + pagination) =====
+        // GET /api/students (search + pagination)
         if ("/api/students".equals(path) && "GET".equalsIgnoreCase(method)) {
             String query = ex.getRequestURI().getQuery();
             String q = "";
@@ -89,7 +89,7 @@ public class StudentsHandler extends SecureHandler {
             return;
         }
 
-        // ===== POST /api/students (admit) =====
+        // POST /api/students (admit)
         if ("/api/students".equals(path) && "POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
 
@@ -165,7 +165,7 @@ public class StudentsHandler extends SecureHandler {
                         parentId = ((Number) existingUser.get("id")).intValue();
                         notifyParentId[0] = parentId;
 
-                        // RESEND activation link if this parent has never activated
+                        // resend activation link if this parent has never activated
                         Map<String, Object> parentUser = Database.queryOne(con,
                                 "SELECT must_change_password FROM users WHERE id = ?", parentId);
                         if (Boolean.TRUE.equals(parentUser.get("must_change_password"))) {
@@ -229,7 +229,7 @@ public class StudentsHandler extends SecureHandler {
                 throw e;
             }
 
-            // STUDENT always gets a fresh activation link (returned to admin, shown in UI)
+            // students  always gets a fresh activation link (returned to admin, shown in UI)
             String studentToken = generateToken();
             Database.update("INSERT INTO activation_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '24 hours')", studentToken, newStudentUserId[0]);
             String studentLink = Env.get("APP_URL") + "/activate?token=" + studentToken;
@@ -257,7 +257,7 @@ public class StudentsHandler extends SecureHandler {
             return;
         }
 
-        // ===== PATCH /api/students/{id}/class (manual promotion / move) =====
+        // PATCH /api/students/{id}/class (manual promotion / move)
         if (path.matches("/api/students/\\d+/class") && "PATCH".equalsIgnoreCase(method)) {
             int studentId = pathInt(path.split("/")[3]);
             Map<String, Object> body = Json.parseBody(ex);
@@ -282,7 +282,7 @@ public class StudentsHandler extends SecureHandler {
             return;
         }
 
-        // ===== PATCH /api/students/{id}/graduate (SS3 only, locks out login) =====
+        // PATCH /api/students/{id}/graduate (SS3 only, locks out login)
         if (path.matches("/api/students/\\d+/graduate") && "PATCH".equalsIgnoreCase(method)) {
             int studentId = pathInt(path.split("/")[3]);
 
@@ -292,7 +292,7 @@ public class StudentsHandler extends SecureHandler {
                 throw new ApiError(400, "Student has already graduated");
             }
 
-            // Only SS3 students can graduate (matches "SS 3A", "SS3 Science", etc.)
+            // Only SS3 students can graduate (matches "SS 3A", "SS3 Science",)
             Map<String, Object> cls = Database.queryOne(
                     "SELECT c.name FROM students s JOIN classes c ON s.class_id = c.id WHERE s.id = ?", studentId);
             if (cls == null || cls.get("name") == null) {
@@ -315,7 +315,7 @@ public class StudentsHandler extends SecureHandler {
             return;
         }
 
-        // ===== PATCH /api/students/{id}/deactivate (remove student, revokes login) =====
+        // PATCH /api/students/{id}/deactivate (remove student, revokes login)
         if (path.matches("/api/students/\\d+/deactivate") && "PATCH".equalsIgnoreCase(method)) {
             int studentId = pathInt(path.split("/")[3]);
 
@@ -335,7 +335,7 @@ public class StudentsHandler extends SecureHandler {
             return;
         }
 
-        // ===== POST /api/students/{id}/reset-password (admin — reset link for students, who have no email/phone) =====
+        //  POST /api/students/{id}/reset-password (admin ,reset link for students, who have no email/phone)
         if (path.matches("/api/students/\\d+/reset-password") && "POST".equalsIgnoreCase(method)) {
             int studentId = pathInt(path.split("/")[3]);
             Map<String, Object> student = Database.queryOne(

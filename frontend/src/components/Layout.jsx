@@ -37,7 +37,6 @@ export default function Layout() {
       links.push({ to: '/admin/timetable', icon: <FiCalendar />, label: 'Timetable' });
       links.push({ to: '/admin/exams', icon: <FiFileText />, label: 'Exams' });
       links.push({ to: '/admin/report-cards', icon: <FiFileText />, label: 'Report Cards' });
-      // PENDING PAGES (backend exists, UI not built) — uncomment when built:
       // links.push({ to: '/admin/broadcast', icon: <FiSend />, label: 'Broadcast' });
       // links.push({ to: '/admin/delivery-log', icon: <FiClock />, label: 'Delivery Log' });
       if (r === 'super_admin') {

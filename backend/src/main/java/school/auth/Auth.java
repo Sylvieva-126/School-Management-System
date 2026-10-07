@@ -16,7 +16,7 @@ public class Auth {
         String sql = "SELECT u.* FROM users u " +
                 "JOIN session_tokens st ON u.id = st.user_id " +
                 "WHERE st.token = ? AND st.expires_at > now() AND u.active = TRUE";
-
+//if token exsist and not expired the account is live
         Map<String, Object> row = Database.queryOne(sql, token);
         if (row == null) return null;
 
@@ -43,6 +43,8 @@ public class Auth {
         Database.update("INSERT INTO session_tokens (token, user_id, expires_at) VALUES (?, ?, now() + interval '7 days')", token, userId);
         return token;
     }
+    //generate random cryptographic sessions
+
 
     public static String tokenOf(HttpExchange ex) {
         String authHeader = ex.getRequestHeaders().getFirst("Authorization");
@@ -51,4 +53,6 @@ public class Auth {
         }
         return null;
     }
+    //to remove bearer prefix
 }
+//post login , login in takes details , auth.create token  gives key cad session records th where we access, auth.authenticate reads ur sesssion , sql checkif it's active expired and exsisis some are requre role

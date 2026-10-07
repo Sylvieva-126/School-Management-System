@@ -53,9 +53,8 @@ public class ExamsHandler extends SecureHandler {
         String path = ex.getRequestURI().getPath();
         String method = ex.getRequestMethod();
 
-        // ===== GET /api/exams/my?classId=&subjectId=  (teacher-legal scoped read) =====
-        // Teachers cannot list ALL exams (admin-only). This endpoint lets the
-        // report-card upload page find exams for the teacher's OWN class/subject.
+        //GET /api/exams/my?classId=&subjectId=  (teacher-legal scoped read)
+        // Teachers cannot list all exams (admin-only). This endpoint lets the report-card upload page find exams for the teacher's OWN class/subject.
         if (path.equals("/api/exams/my") && "GET".equalsIgnoreCase(method)) {
             requireRole(user, "teacher", "super_admin", "admin");
 
@@ -107,7 +106,7 @@ public class ExamsHandler extends SecureHandler {
             return;
         }
 
-        // ===== Everything below is ADMIN-ONLY (list all exams, create exams) =====
+        // Everything below is admin only  (list all exams, create exams)
         requireRole(user, "super_admin", "admin");
 
         if ("/api/exams".equals(path) && "GET".equalsIgnoreCase(method)) {
@@ -144,7 +143,7 @@ public class ExamsHandler extends SecureHandler {
                 throw new ApiError(400, "This term is closed.");
             }
 
-            // ===== DUPLICATE GUARD — BEFORE the INSERT =====
+            // duplicate guard before insert
             Map<String, Object> dup = Database.queryOne(
                     "SELECT id FROM exams WHERE LOWER(name) = LOWER(?) AND class_id = ? AND subject_id = ? AND term_id = ?",
                     name.trim(), classId, subjectId, termId);

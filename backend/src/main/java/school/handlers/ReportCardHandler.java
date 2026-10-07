@@ -8,7 +8,7 @@ import school.http.SecureHandler;
 
 import java.util.Map;
 
-// Minimal stub for Phase 8 to ensure Main.java compiles. Full implementation in Phase 10.
+// Minimal stub  to ensure Main.java compiles
 public class ReportCardHandler extends SecureHandler {
     @Override
     protected void handleSecure(HttpExchange ex, User user) throws Exception {

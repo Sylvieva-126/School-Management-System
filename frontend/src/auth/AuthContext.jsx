@@ -10,20 +10,23 @@ export function AuthProvider({ children }) {
       return sessionStorage.getItem('token') && saved ? saved : null;
     } catch { return null; }
   });
+//use stete allows  us to keep track of the session instaed or re reading on every rneder
 
   const login = (token, userData) => {
-    setCurrentToken(token);                       // snapshot for THIS tab + mirror to sessionStorage
+    setCurrentToken(token);
     sessionStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
   };
+// snapshot for this ab + mirror to sessionStorage
 
   const logout = () => {
-    setCurrentToken(null);                        // clears this tab's snapshot + sessionStorage
+    setCurrentToken(null);
     sessionStorage.removeItem('user');
     setUser(null);
   };
+  // clears this tab's snapshot + sessionStorage
 
-  // Stable identity — use as React key on the shell to remount pages per session
+  // Stable identity use as React key on the shell to remount pages per session
   const sessionKey = user ? `${user.role}-${user.name}` : 'anon';
 
   return (

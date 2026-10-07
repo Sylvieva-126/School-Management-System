@@ -21,7 +21,7 @@ public class DeliveryQueue {
             return; // Cannot proceed without the delivery ID
         }
 
-        // LAMBDA-CAPTURE RULE: Ensure all variables used in the lambda are explicitly final
+        //lamda capture rule: Ensure all variables used in the lambda are explicitly final
         final long finalDeliveryId = generatedId;
         final String finalChannel = channel;
         final String finalRecipient = recipient;

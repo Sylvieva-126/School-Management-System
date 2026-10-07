@@ -34,7 +34,7 @@ public class ReportCardUploadHandler extends SecureHandler {
         String path = ex.getRequestURI().getPath();
         String method = ex.getRequestMethod();
 
-        // ===== POST /api/report-cards/upload (teacher) =====
+        // POST /api/report-cards/upload (teacher)
         if ("/api/report-cards/upload".equals(path) && "POST".equalsIgnoreCase(method)) {
             requireRole(user, "teacher");
 
@@ -125,7 +125,7 @@ public class ReportCardUploadHandler extends SecureHandler {
             return;
         }
 
-        // ===== GET /api/report-cards/pending (admin — unpublished uploads) =====
+        // =GET /api/report-cards/pending (admin — unpublished uploads)
         if ("/api/report-cards/pending".equals(path) && "GET".equalsIgnoreCase(method)) {
             requireRole(user, "super_admin", "admin");
             List<Map<String, Object>> pending = Database.query(
@@ -141,7 +141,7 @@ public class ReportCardUploadHandler extends SecureHandler {
             return;
         }
 
-        // ===== POST /api/report-cards/{id}/publish (admin) =====
+        //  POST /api/report-cards/{id}/publish (admin)
         if (path.matches("/api/report-cards/\\d+/publish") && "POST".equalsIgnoreCase(method)) {
             requireRole(user, "super_admin", "admin");
             int id = pathInt(path.split("/")[3]);
@@ -174,7 +174,7 @@ public class ReportCardUploadHandler extends SecureHandler {
             return;
         }
 
-        // ===== GET /api/report-cards/{id}/download (role-checked file serve) =====
+        //  GET /api/report-cards/{id}/download (role-checked file serve)
         if (path.matches("/api/report-cards/\\d+/download") && "GET".equalsIgnoreCase(method)) {
             int id = pathInt(path.split("/")[3]);
             Map<String, Object> upload = Database.queryOne(
@@ -209,7 +209,7 @@ public class ReportCardUploadHandler extends SecureHandler {
             return;
         }
 
-        // ===== GET /api/report-cards/uploads/{studentId}/{examId} (admin — metadata list) =====
+        //  GET /api/report-cards/uploads/{studentId}/{examId} (admin — metadata list)
         if (path.matches("/api/report-cards/uploads/\\d+/\\d+") && "GET".equalsIgnoreCase(method)) {
             requireRole(user, "super_admin", "admin");
             String[] parts = path.split("/");

@@ -27,7 +27,7 @@ public class StudentPortalHandler extends SecureHandler {
         int studentId = ((Number) studentRow.get("id")).intValue();
         Integer classId = studentRow.get("class_id") != null ? ((Number) studentRow.get("class_id")).intValue() : null;
 
-        // NEW: published report cards (drives the "My Report Cards" list + download buttons)
+        //  published report cards (drives the "My Report Cards" list + download buttons)
         if ("/api/student/me/report-cards".equals(path)) {
             List<Map<String, Object>> cards = Database.query(
                     "SELECT r.id, r.file_name, r.file_type, r.uploaded_at, e.name AS exam_name, t.name AS term_name " +

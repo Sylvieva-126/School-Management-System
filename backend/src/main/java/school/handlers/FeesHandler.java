@@ -495,7 +495,7 @@ public class FeesHandler extends SecureHandler {
             return;
         }
 
-        // ===== Generate invoices — active term by default; explicit termId works on closed terms =====
+        //  Generate invoices , active term by default; explicit termId works on closed terms
         if (path.equals("/api/fees/generate-invoices") && "POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
             int classId = asInt(body.get("classId"));
@@ -542,7 +542,7 @@ public class FeesHandler extends SecureHandler {
             return;
         }
 
-        // ===== Remind debtors — began terms only (active OR closed) =====
+        // Remind debtors ,  began terms only (active OR closed)
         if (path.equals("/api/fees/remind-debtors") && "POST".equalsIgnoreCase(method)) {
             List<Map<String, Object>> debtors = Database.query(
                     "SELECT i.balance, s.full_name as student_name, p.parent_user_id, t.name as term_name " +
@@ -567,7 +567,7 @@ public class FeesHandler extends SecureHandler {
             return;
         }
 
-        // ===== Debtors — began terms only (active OR closed) =====
+        // Debtors ,  began terms only (active OR closed)
         if (path.equals("/api/fees/debtors") && "GET".equalsIgnoreCase(method)) {
             String query = ex.getRequestURI().getQuery();
             String q = "";

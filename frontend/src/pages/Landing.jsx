@@ -5,7 +5,6 @@ import {
   FiFileText, FiShield, FiLock, FiEyeOff, FiClipboard, FiArrowRight,
   FiCheckCircle
 } from 'react-icons/fi';
-import ThemeToggle from '../components/ThemeToggle';
 
 // Fade-up-on-scroll wrapper — reveals children when they enter the viewport.
 // IntersectionObserver: no scroll listeners, no perf cost. Sticks after reveal.
@@ -47,12 +46,9 @@ export default function Landing() {
         <div style={{ fontWeight: 700, fontFamily: "'Fraunces', Georgia, serif", fontSize: '1.1rem' }}>
           School<span style={{ color: 'var(--accent)' }}>Suite</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <ThemeToggle variant="navy" />
-          <Link to="/login" className="btn-primary" style={{ textDecoration: 'none', fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}>
-            Log in
-          </Link>
-        </div>
+        <Link to="/login" className="btn-primary" style={{ textDecoration: 'none', fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}>
+          Log in
+        </Link>
       </nav>
 
       {/* ============ 1. HERO (navy band) — staggered entrance ============ */}

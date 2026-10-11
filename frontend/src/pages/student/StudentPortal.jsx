@@ -2,9 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FiDownload, FiRefreshCw } from 'react-icons/fi';
 import { apiFetch } from '../../api/client';
 import { formatNaira } from '../../utils/format';
-import Dropdown from '../../components/Dropdown';
 
-// Authenticated blob download —,report cards need the Bearer token
+// Authenticated blob download — report cards need the Bearer token
 async function downloadReportCard(id, fileName) {
   const blob = await apiFetch(`/report-cards/${id}/download`, { responseType: 'blob' });
   const url = URL.createObjectURL(blob);

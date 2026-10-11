@@ -71,7 +71,7 @@ export default function Login() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
       <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>School Login</h2>
+        <h2 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>Login</h2>
         {error && <div className="error-text" style={{ marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
 
         {forgotMode ? (

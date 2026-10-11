@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   FiUsers, FiUserCheck, FiBookOpen, FiDollarSign, FiCalendar,
   FiFileText, FiShield, FiLock, FiEyeOff, FiClipboard, FiArrowRight,
-  FiCheckCircle
+  FiCheckCircle, FiSun, FiMoon
 } from 'react-icons/fi';
 
 // Fade-up-on-scroll wrapper — reveals children when they enter the viewport.
@@ -34,6 +34,32 @@ function Reveal({ children, delay = 0 }) {
   );
 }
 
+// Landing-specific theme toggle — styled for the navy nav (visible in both themes).
+// Same localStorage key as the portal, so a visitor's choice carries into the app.
+function LandingThemeToggle() {
+  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
+
+  const toggle = () => {
+    const next = dark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    setDark(next);
+  };
+
+  return (
+    <button onClick={toggle} aria-label="Toggle theme"
+            style={{
+              width: 38, height: 38, borderRadius: 10, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              color: '#F2F6FA', fontSize: 16
+            }}>
+      {dark ? <FiSun /> : <FiMoon />}
+    </button>
+  );
+}
+
 export default function Landing() {
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -46,9 +72,12 @@ export default function Landing() {
         <div style={{ fontWeight: 700, fontFamily: "'Fraunces', Georgia, serif", fontSize: '1.1rem' }}>
           School<span style={{ color: 'var(--accent)' }}>Suite</span>
         </div>
-        <Link to="/login" className="btn-primary" style={{ textDecoration: 'none', fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}>
-          Log  in
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <LandingThemeToggle />
+          <Link to="/login" className="btn-primary" style={{ textDecoration: 'none', fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}>
+            Log in
+          </Link>
+        </div>
       </nav>
 
       {/* ============ 1. HERO (navy band) — staggered entrance ============ */}
@@ -82,7 +111,7 @@ export default function Landing() {
           <Link to="/login" className="btn-primary"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                          textDecoration: 'none', padding: '0.75rem 1.6rem', fontSize: '1rem' }}>
-            Login in to your portal <FiArrowRight />
+            Log in to your portal <FiArrowRight />
           </Link>
         </Reveal>
         <Reveal delay={480}>

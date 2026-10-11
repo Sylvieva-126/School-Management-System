@@ -14,9 +14,9 @@
   --text-muted: #63707E;
   --border: #E5DFD0;
 
---primary: #2D6A4F;
-    --primary-hover: #1F5239;
-
+  --primary: #2D6A4F;
+  --primary-hover: #1F5239;
+  --primary-soft: rgba(45, 106, 79, 0.12);    /* ← ADDED — hover tints, dropdown highlights */
   --primary-text: #FFFFFF;
   --accent: #74E4FF;
 
@@ -42,8 +42,9 @@
   --text-muted: #8E9AA6;
   --border: #262E37;
 
-   --primary: #3BA272;
-   --primary-hover: #2E8A5F;
+  --primary: #3BA272;
+  --primary-hover: #2E8A5F;
+  --primary-soft: rgba(59, 162, 114, 0.2);    /* ← ADDED — lighter tint for dark bg */
   --primary-text: #FFFFFF;
   --accent: #00F5D4;
 

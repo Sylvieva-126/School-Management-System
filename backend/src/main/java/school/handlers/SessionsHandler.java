@@ -70,16 +70,43 @@ public class SessionsHandler extends SecureHandler {
             return;
         }
 
+//        if ("/api/terms".equals(path) && "POST".equalsIgnoreCase(method)) {
+//            Map<String, Object> body = Json.parseBody(ex);
+//            String name = (String) body.get("name");
+//            Integer sessionId = body.get("sessionId") != null ? ((Number) body.get("sessionId")).intValue() : null;
+//            if (name == null || sessionId == null) throw new ApiError(400, "Term name and session ID are required");
+//
+//            Database.update("INSERT INTO terms (name, session_id) VALUES (?, ?)", name, sessionId);
+//            Json.send(ex, 201, Map.of("message", "Term created"));
+//            return;
+//        }
         if ("/api/terms".equals(path) && "POST".equalsIgnoreCase(method)) {
             Map<String, Object> body = Json.parseBody(ex);
             String name = (String) body.get("name");
             Integer sessionId = body.get("sessionId") != null ? ((Number) body.get("sessionId")).intValue() : null;
             if (name == null || sessionId == null) throw new ApiError(400, "Term name and session ID are required");
 
-            Database.update("INSERT INTO terms (name, session_id) VALUES (?, ?)", name, sessionId);
+            // ENFORCE: hard cap — a session has exactly 3 terms, period
+            long count = ((Number) Database.queryOne(
+                    "SELECT COUNT(*) AS c FROM terms WHERE session_id = ?", sessionId).get("c")).longValue();
+            if (count >= 3) {
+                throw new ApiError(400, "This session already has 3 terms. Create a new session for the next academic year.");
+            }
+
+            // ENFORCE: no duplicate term names within the same session
+            Map<String, Object> existing = Database.queryOne(
+                    "SELECT id FROM terms WHERE session_id = ? AND LOWER(name) = LOWER(?)",
+                    sessionId, name.trim());
+            if (existing != null) {
+                throw new ApiError(409, "This term already exists in this session");
+            }
+
+            Database.update("INSERT INTO terms (name, session_id) VALUES (?, ?)", name.trim(), sessionId);
             Json.send(ex, 201, Map.of("message", "Term created"));
             return;
         }
+
+
 
         if (path.startsWith("/api/terms/activate/") && "POST".equalsIgnoreCase(method)) {
             int id = pathInt(path.substring("/api/terms/activate/".length()));

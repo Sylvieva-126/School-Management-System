@@ -22,6 +22,7 @@ import ParentPortal from './pages/parent/ParentPortal';
 import TeacherHome from './pages/teacher/TeacherHome';
 import MarkAttendance from './pages/teacher/MarkAttendance';
 import ActivityLog from './pages/admin/ActivityLog';
+import Landing from './pages/Landing';
 
 
 
@@ -34,15 +35,16 @@ const Placeholder = ({ title }) => (
   </div>
 );
 
-function HomeRedirect() {
+function Home() {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
-  const r = user.role;
-  if (r === 'admin' || r === 'super_admin') return <Navigate to="/admin/dashboard" replace />;
-  if (r === 'teacher') return <Navigate to="/teacher" replace />;
-  if (r === 'parent') return <Navigate to="/parent" replace />;
-  if (r === 'student') return <Navigate to="/student" replace />;
-  return <Navigate to="/login" replace />;
+  if (user) {                                          // logged in → role home
+    const r = user.role;
+    if (r === 'admin' || r === 'super_admin') return <Navigate to="/admin/dashboard" replace />;
+    if (r === 'teacher') return <Navigate to="/teacher" replace />;
+    if (r === 'parent') return <Navigate to="/parent" replace />;
+    if (r === 'student') return <Navigate to="/student" replace />;
+  }
+  return <Landing />;                                  // anonymous → landing
 }
 
 export default function App() {
@@ -51,9 +53,10 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            {/* PUBLIC ROUTES */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/activate" element={<Activate />} />
+                      {/* PUBLIC ROUTES */}
+                      <Route path="/" element={<Home />} />      {/* ← the ONLY "/" route */}
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/activate" element={<Activate />} />
 
                      {/* ANY LOGGED-IN ROLE */}
                      <Route path="/change-password" element={
@@ -104,8 +107,8 @@ export default function App() {
               <Route path="timetable" element={<Placeholder title="My Timetable" />} />
             </Route>
 
-            {/* HOME: redirect by role */}
-            <Route path="/" element={<HomeRedirect />} />
+{/*              */}{/* HOME: redirect by role */}
+{/*             <Route path="/" element={<HomeRedirect />} /> */}
 
             {/* FALLBACK: unknown URLs go home, not to login */}
             <Route path="*" element={<Navigate to="/" replace />} />

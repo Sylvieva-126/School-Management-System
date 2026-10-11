@@ -133,7 +133,7 @@ export default function ParentPortal() {
     <div style={{ minWidth: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.25rem' }}>
         <div>
-          <h1 style={{ marginBottom: '0.15rem' }}>My Children</h1>
+          <h1 style={{ marginBottom: '0.15rem' }}>My Child(ren)</h1>
           <span className="text-muted" style={{ fontSize: '0.85rem' }}>{children.length} enrolled</span>
         </div>
         <button className="btn-ghost" onClick={load} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>

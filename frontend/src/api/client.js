@@ -17,7 +17,7 @@ function authHeaders() {
 async function handle(res) {
   if (res.status === 204) return null;
   let data = null;
-  try { data = await res.json(); } catch
+  try { data = await res.json(); } catch { /* non-JSON body */ }
   if (!res.ok) {
     if (res.status === 401) {
       sessionStorage.removeItem('user');

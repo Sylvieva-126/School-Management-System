@@ -4,6 +4,8 @@ import {
   FiMenu, FiLogOut, FiActivity, FiUsers, FiBookOpen,
   FiDollarSign, FiCalendar, FiFileText, FiSend, FiShield, FiClock,FiKey
 } from 'react-icons/fi';
+import { FaSchool } from "react-icons/fa6";
+
 import { useAuth } from '../auth/AuthContext';
 import NotificationBell from './NotificationBell';
 import ThemeToggle from './ThemeToggle';
@@ -72,7 +74,8 @@ export default function Layout() {
 
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div style={{ padding: '1.5rem', fontWeight: 'bold', fontSize: '1.25rem', borderBottom: '1px solid var(--border)' }}>
-          School System
+        School System
+
         </div>
         <nav style={{ flex: 1, overflowY: 'auto', padding: '1rem 0' }}>
           {getLinks().map(link => (

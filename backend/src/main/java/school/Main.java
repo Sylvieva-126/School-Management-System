@@ -51,14 +51,14 @@ public class Main {
         server.createContext("/api/sessions", new SessionsHandler());
         server.createContext("/api/terms", new SessionsHandler());
 
-        // Phase 4B Routes
+        // admin
         server.createContext("/api/fees", new FeesHandler());
         server.createContext("/api/timetable", new TimetableHandler());
         server.createContext("/api/exams", new ExamsHandler());
         server.createContext("/api/grading-scale", new GradingScaleHandler());
         server.createContext("/api/dashboard", new DashboardHandler());
 
-        // Phase 5 Routes
+        // admin
         server.createContext("/api/attendance", new AttendanceHandler());
         server.createContext("/api/scores", new ScoreHandler());
         server.createContext("/api/teacher", new TeacherPortalHandler());
@@ -66,10 +66,10 @@ public class Main {
         server.createContext("/api/student", new StudentPortalHandler());
         server.createContext("/api/parent", new ParentPortalHandler());
 
-        // Phase 6 Routes
+        // not used
         server.createContext("/api/results", new ResultHandler());
 
-        // Phase 7 Routes
+        // not used
         server.createContext("/api/broadcast", new BroadcastHandler());
         server.createContext("/api/deliveries", new DeliveryLogHandler());
 

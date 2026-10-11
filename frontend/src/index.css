@@ -31,6 +31,8 @@
 
   --sidebar: #16283C;
   --shadow-1: 0 1px 2px rgba(28, 42, 56, 0.04), 0 8px 24px rgba(28, 42, 56, 0.06);
+
+  --primary-soft: rgba(45, 106, 79, 0.12);
 }
 
 [data-theme="dark"] {
@@ -379,6 +381,13 @@ background-color: var(--primary); color: var(--primary-text);
   justify-content: center;
   min-height: 100%;    /* fills the scrollable content pane exactly */
   padding: 1.5rem;
+}
+/* Accessibility: respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ---------- RESPONSIVE ---------- */
